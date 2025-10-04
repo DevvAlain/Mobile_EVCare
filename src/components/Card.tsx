@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { COLORS, SPACING, FONT_SIZES } from "../service/constants";
+import { COLORS, SPACING, FONT_SIZES } from "../service/constants/theme";
 
 interface CardProps {
   title?: string;

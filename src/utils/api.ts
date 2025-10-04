@@ -1,5 +1,5 @@
 import { ApiResponse } from "../types";
-import { API_CONFIG } from "../service/constants";
+import { API_CONFIG } from "../service/constants/theme";
 
 export class ApiClient {
   private baseURL: string;
