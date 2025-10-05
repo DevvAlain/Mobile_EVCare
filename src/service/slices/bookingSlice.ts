@@ -1,0 +1,899 @@
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { axiosInstance } from "../constants/axiosConfig";
+import {
+  VEHICLES_ENDPOINT,
+  CREATE_VEHICLE_ENDPOINT,
+  POPULAR_SERVICE_TYPES_ENDPOINT,
+  COMPATIBLE_SERVICES_ENDPOINT,
+  COMPATIBLE_PACKAGES_ENDPOINT,
+  CREATE_BOOKING_ENDPOINT,
+  BOOKING_TIME_SLOTS_ENDPOINT,
+  BOOKING_SERVICE_CENTERS_ENDPOINT,
+  SERVICE_CENTER_NEARBY_ENDPOINT,
+  MY_BOOKINGS_ENDPOINT,
+  BOOKING_DETAILS_ENDPOINT,
+  BOOKING_RESCHEDULE_ENDPOINT,
+  BOOKING_CANCEL_ENDPOINT,
+  BOOKING_AWAITING_CONFIRMATION_ENDPOINT,
+  BOOKING_CONFIRM_ENDPOINT,
+  BOOKINGS_CONFIRMED_ENDPOINT,
+  BOOKINGS_PENDING_OFFLINE_PAYMENT_ENDPOINT,
+  SUBMIT_CUSTOMER_FEEDBACK_ENDPOINT,
+  GET_CUSTOMER_FEEDBACK_ENDPOINT,
+} from "../constants/apiConfig";
+import { Vehicle, CreateVehicleData } from "../../types/vehicle";
+import {
+  ServiceType,
+  ServicePackage,
+  BookingData,
+  BookingServiceCenter,
+  BookingState,
+  AwaitingConfirmationQueryParams,
+} from "../../types/booking";
+
+// Using BookingState from interfaces/booking.ts
+
+// Using any for error handling like other slices in the project
+
+const initialState: BookingState = {
+  currentStep: 1,
+  bookingData: {},
+  vehicles: [],
+  selectedVehicle: null,
+  serviceCenters: [],
+  selectedServiceCenter: null,
+  compatibleServices: [],
+  selectedService: null,
+  compatiblePackages: [],
+  selectedServicePackage: null,
+  availableTimeSlots: [],
+  popularServices: [],
+  loading: false,
+  error: null,
+  createVehicleLoading: false,
+  createBookingLoading: false,
+  myBookings: [],
+  bookingDetails: null,
+  // Admin booking confirmation
+  awaitingConfirmationBookings: [],
+  awaitingConfirmationPagination: null,
+  awaitingConfirmationLoading: false,
+  confirmBookingLoading: false,
+  // Staff confirmed bookings
+  confirmedBookings: [],
+  confirmedBookingsPagination: null,
+  confirmedBookingsLoading: false,
+  // Pending offline payment bookings
+  pendingOfflinePaymentBookings: [],
+  pendingOfflinePaymentPagination: null,
+  pendingOfflinePaymentLoading: false,
+};
+
+// Async thunks
+export const fetchVehicles = createAsyncThunk(
+  "booking/fetchVehicles",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(VEHICLES_ENDPOINT);
+      return response.data.data;
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch vehicles"
+      );
+    }
+  }
+);
+
+export const createVehicle = createAsyncThunk(
+  "booking/createVehicle",
+  async (vehicleData: CreateVehicleData, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(
+        CREATE_VEHICLE_ENDPOINT,
+        vehicleData
+      );
+      if (response.data && response.data.success === false) {
+        return rejectWithValue(
+          response.data.message || "Failed to create vehicle"
+        );
+      }
+      return response.data;
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to create vehicle"
+      );
+    }
+  }
+);
+
+export const fetchBookingServiceCenters = createAsyncThunk(
+  "booking/fetchBookingServiceCenters",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(
+        BOOKING_SERVICE_CENTERS_ENDPOINT
+      );
+      return response.data.data;
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch service centers"
+      );
+    }
+  }
+);
+
+// Nearby service centers (by coordinates)
+export const fetchNearbyServiceCenters = createAsyncThunk(
+  "booking/fetchNearbyServiceCenters",
+  async (
+    {
+      lat,
+      lng,
+      radiusKm = 50,
+    }: { lat: number; lng: number; radiusKm?: number },
+    { rejectWithValue }
+  ) => {
+    try {
+      const url = `${SERVICE_CENTER_NEARBY_ENDPOINT}?lat=${lat}&lng=${lng}&radius=${radiusKm}`;
+      const response = await axiosInstance.get(url);
+      const data =
+        response.data?.data?.serviceCenters ||
+        response.data?.data ||
+        response.data?.serviceCenters ||
+        response.data;
+      return data;
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message ||
+          "Failed to fetch nearby service centers"
+      );
+    }
+  }
+);
+
+export const fetchPopularServices = createAsyncThunk(
+  "booking/fetchPopularServices",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(POPULAR_SERVICE_TYPES_ENDPOINT);
+      return response.data.data;
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch popular services"
+      );
+    }
+  }
+);
+
+export const fetchCompatibleServices = createAsyncThunk(
+  "booking/fetchCompatibleServices",
+  async (vehicleId: string, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(
+        COMPATIBLE_SERVICES_ENDPOINT(vehicleId)
+      );
+      return response.data.data;
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch compatible services"
+      );
+    }
+  }
+);
+
+export const fetchCompatiblePackages = createAsyncThunk(
+  "booking/fetchCompatiblePackages",
+  async (vehicleId: string, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(
+        COMPATIBLE_PACKAGES_ENDPOINT(vehicleId)
+      );
+      // API returns { success, message, data: ServicePackage[] }
+      return response.data.data as ServicePackage[];
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch compatible packages"
+      );
+    }
+  }
+);
+
+export const fetchAvailableTimeSlots = createAsyncThunk(
+  "booking/fetchAvailableTimeSlots",
+  async (
+    {
+      serviceCenterId,
+      date,
+    }: {
+      serviceCenterId: string;
+      date: string;
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await axiosInstance.get(
+        BOOKING_TIME_SLOTS_ENDPOINT(serviceCenterId, date)
+      );
+      return response.data.data;
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch time slots"
+      );
+    }
+  }
+);
+
+export const createBooking = createAsyncThunk(
+  "booking/createBooking",
+  async (bookingData: BookingData, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(
+        CREATE_BOOKING_ENDPOINT,
+        bookingData
+      );
+      return response.data;
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to create booking"
+      );
+    }
+  }
+);
+
+// Async thunk for fetching my bookings
+export const fetchMyBookings = createAsyncThunk(
+  "booking/fetchMyBookings",
+  async (params: Record<string, string | number> = {}, { rejectWithValue }) => {
+    try {
+      const queryString = new URLSearchParams();
+
+      if (params.page) queryString.append("page", params.page.toString());
+      if (params.limit) queryString.append("limit", params.limit.toString());
+      if (params.status) queryString.append("status", params.status.toString());
+      if (params.sortBy) queryString.append("sortBy", params.sortBy.toString());
+      if (params.sortOrder)
+        queryString.append("sortOrder", params.sortOrder.toString());
+      if (params.startDate)
+        queryString.append("startDate", params.startDate.toString());
+      if (params.endDate)
+        queryString.append("endDate", params.endDate.toString());
+
+      const url = queryString.toString()
+        ? `${MY_BOOKINGS_ENDPOINT}?${queryString.toString()}`
+        : MY_BOOKINGS_ENDPOINT;
+
+      const response = await axiosInstance.get(url);
+      return response.data.data; // This returns { appointments: [...], pagination: {...} }
+    } catch (err: unknown) {
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch bookings"
+      );
+    }
+  }
+);
+
+// Async thunk for fetching booking details
+export const fetchBookingDetails = createAsyncThunk(
+  "booking/fetchBookingDetails",
+  async (bookingId: string, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(
+        BOOKING_DETAILS_ENDPOINT(bookingId)
+      );
+      return response.data.data; // Assuming the API returns booking details in `data`
+    } catch (err: unknown) {
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch booking details"
+      );
+    }
+  }
+);
+
+// Dời lịch hẹn
+export const rescheduleBooking = createAsyncThunk(
+  "booking/reschedule",
+  async (
+    {
+      bookingId,
+      appointmentDate,
+      appointmentTime,
+    }: { bookingId: string; appointmentDate: string; appointmentTime: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await axiosInstance.put(
+        BOOKING_RESCHEDULE_ENDPOINT(bookingId),
+        { newDate: appointmentDate, newTime: appointmentTime }
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to reschedule booking"
+      );
+    }
+  }
+);
+
+// Hủy lịch hẹn
+export const cancelBooking = createAsyncThunk(
+  "booking/cancel",
+  async (
+    { bookingId, reason }: { bookingId: string; reason?: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await axiosInstance.put(
+        BOOKING_CANCEL_ENDPOINT(bookingId),
+        { reason }
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to cancel booking"
+      );
+    }
+  }
+);
+
+// Admin booking confirmation async thunks
+export const fetchAwaitingConfirmationBookings = createAsyncThunk(
+  "booking/fetchAwaitingConfirmation",
+  async (params: AwaitingConfirmationQueryParams, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(
+        BOOKING_AWAITING_CONFIRMATION_ENDPOINT,
+        { params }
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message ||
+          "Failed to fetch awaiting confirmation bookings"
+      );
+    }
+  }
+);
+
+export const confirmBooking = createAsyncThunk(
+  "booking/confirm",
+  async (bookingId: string, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(
+        BOOKING_CONFIRM_ENDPOINT(bookingId)
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to confirm booking"
+      );
+    }
+  }
+);
+
+// Fetch confirmed bookings (for staff/technicians)
+export const fetchConfirmedBookings = createAsyncThunk(
+  "booking/fetchConfirmed",
+  async (params: AwaitingConfirmationQueryParams, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(BOOKINGS_CONFIRMED_ENDPOINT, {
+        params,
+      });
+      return response.data;
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch confirmed bookings"
+      );
+    }
+  }
+);
+
+// Fetch bookings pending offline payment (same params as awaiting confirmation)
+export const fetchPendingOfflinePaymentBookings = createAsyncThunk(
+  "booking/fetchPendingOfflinePayment",
+  async (params: AwaitingConfirmationQueryParams, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(
+        BOOKINGS_PENDING_OFFLINE_PAYMENT_ENDPOINT,
+        { params }
+      );
+      return response.data;
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message ||
+          "Failed to fetch pending offline payment bookings"
+      );
+    }
+  }
+);
+
+export const getCustomerFeedback = createAsyncThunk(
+  "booking/getCustomerFeedback",
+  async (appointmentId: string, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(
+        GET_CUSTOMER_FEEDBACK_ENDPOINT(appointmentId)
+      );
+      return response.data;
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to get customer feedback"
+      );
+    }
+  }
+);
+
+export const submitCustomerFeedback = createAsyncThunk(
+  "booking/submitCustomerFeedback",
+  async (
+    {
+      appointmentId,
+      feedback,
+    }: {
+      appointmentId: string;
+      feedback: {
+        overall: number;
+        service: number;
+        technician: number;
+        facility: number;
+        comment: string;
+      };
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await axiosInstance.post(
+        SUBMIT_CUSTOMER_FEEDBACK_ENDPOINT(appointmentId),
+        feedback
+      );
+      return response.data;
+    } catch (err: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const error = err as any;
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to submit customer feedback"
+      );
+    }
+  }
+);
+
+const bookingSlice = createSlice({
+  name: "booking",
+  initialState,
+  reducers: {
+    setCurrentStep: (state, action: PayloadAction<number>) => {
+      state.currentStep = action.payload;
+    },
+    nextStep: (state) => {
+      state.currentStep += 1;
+    },
+    prevStep: (state) => {
+      state.currentStep -= 1;
+    },
+    setSelectedVehicle: (state, action: PayloadAction<Vehicle | null>) => {
+      state.selectedVehicle = action.payload;
+      state.bookingData.vehicleId = action.payload?._id || "";
+    },
+    setSelectedServiceCenter: (
+      state,
+      action: PayloadAction<BookingServiceCenter | null>
+    ) => {
+      state.selectedServiceCenter = action.payload;
+      state.bookingData.serviceCenterId = action.payload?._id || "";
+    },
+    setSelectedService: (state, action: PayloadAction<ServiceType | null>) => {
+      state.selectedService = action.payload;
+      state.bookingData.serviceTypeId = action.payload?._id || "";
+      // If user picks a single service, clear selected package
+      if (action.payload) {
+        state.selectedServicePackage = null;
+        delete state.bookingData.servicePackageId;
+      }
+    },
+    setSelectedServicePackage: (
+      state,
+      action: PayloadAction<ServicePackage | null>
+    ) => {
+      state.selectedServicePackage = action.payload;
+      state.bookingData.servicePackageId = action.payload?._id || "";
+      // When choosing a package, clear single service selection
+      if (action.payload) {
+        state.selectedService = null;
+        delete state.bookingData.serviceTypeId;
+      }
+    },
+    updateBookingData: (state, action: PayloadAction<Partial<BookingData>>) => {
+      state.bookingData = { ...state.bookingData, ...action.payload };
+    },
+    clearError: (state) => {
+      state.error = null;
+    },
+    updateBookingFeedback: (
+      state,
+      action: PayloadAction<{ bookingId: string; feedback: any }>
+    ) => {
+      const { bookingId, feedback } = action.payload;
+      const bookingIndex = state.myBookings.findIndex(
+        (booking) => booking._id === bookingId
+      );
+      if (bookingIndex !== -1) {
+        state.myBookings[bookingIndex].feedback = feedback;
+      }
+    },
+    resetBooking: (state) => {
+      state.currentStep = 1;
+      state.bookingData = {};
+      state.selectedVehicle = null;
+      state.selectedServiceCenter = null;
+      state.selectedService = null;
+      state.selectedServicePackage = null;
+      state.availableTimeSlots = [];
+      state.error = null;
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      // Fetch vehicles
+      .addCase(fetchVehicles.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchVehicles.fulfilled, (state, action) => {
+        state.loading = false;
+        state.vehicles = action.payload;
+      })
+      .addCase(fetchVehicles.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Create vehicle
+      .addCase(createVehicle.pending, (state) => {
+        state.createVehicleLoading = true;
+        state.error = null;
+      })
+      .addCase(createVehicle.fulfilled, (state, action) => {
+        state.createVehicleLoading = false;
+        state.vehicles.push(action.payload.data);
+        state.selectedVehicle = action.payload.data;
+        state.bookingData.vehicleId = action.payload.data._id;
+      })
+      .addCase(createVehicle.rejected, (state, action) => {
+        state.createVehicleLoading = false;
+        state.error = action.payload as string;
+      })
+      // Fetch booking service centers
+      .addCase(fetchBookingServiceCenters.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchBookingServiceCenters.fulfilled, (state, action) => {
+        state.loading = false;
+        state.serviceCenters = action.payload;
+      })
+      .addCase(fetchBookingServiceCenters.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Nearby service centers
+      .addCase(fetchNearbyServiceCenters.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchNearbyServiceCenters.fulfilled, (state, action) => {
+        state.loading = false;
+        state.serviceCenters = action.payload;
+      })
+      .addCase(fetchNearbyServiceCenters.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Fetch popular services
+      .addCase(fetchPopularServices.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPopularServices.fulfilled, (state, action) => {
+        state.loading = false;
+        state.popularServices = action.payload;
+      })
+      .addCase(fetchPopularServices.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Fetch compatible services
+      .addCase(fetchCompatibleServices.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCompatibleServices.fulfilled, (state, action) => {
+        state.loading = false;
+        state.compatibleServices = action.payload;
+      })
+      .addCase(fetchCompatibleServices.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Fetch compatible packages
+      .addCase(fetchCompatiblePackages.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCompatiblePackages.fulfilled, (state, action) => {
+        state.loading = false;
+        state.compatiblePackages = action.payload;
+      })
+      .addCase(fetchCompatiblePackages.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Fetch available time slots
+      .addCase(fetchAvailableTimeSlots.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAvailableTimeSlots.fulfilled, (state, action) => {
+        state.loading = false;
+        state.availableTimeSlots = action.payload.availableSlots;
+      })
+      .addCase(fetchAvailableTimeSlots.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Create booking
+      .addCase(createBooking.pending, (state) => {
+        state.createBookingLoading = true;
+        state.error = null;
+      })
+      .addCase(createBooking.fulfilled, (state, action) => {
+        state.createBookingLoading = false;
+
+        // Store booking and payment data for payment flow
+        state.bookingDetails = action.payload.data.appointment;
+
+        // Only reset state if no payment is required
+        if (!action.payload.data.requiresPayment) {
+          // Reset booking state after successful creation
+          state.currentStep = 1;
+          state.bookingData = {};
+          state.selectedVehicle = null;
+          state.selectedServiceCenter = null;
+          state.selectedService = null;
+          state.selectedServicePackage = null;
+          state.availableTimeSlots = [];
+          // Fetch updated bookings
+          state.myBookings = action.payload.data.myBookings || state.myBookings;
+        }
+      })
+      .addCase(createBooking.rejected, (state, action) => {
+        state.createBookingLoading = false;
+        state.error = action.payload as string;
+      })
+      // Fetch my bookings
+      .addCase(fetchMyBookings.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchMyBookings.fulfilled, (state, action) => {
+        state.loading = false;
+        // Handle API response structure: { success: true, data: { appointments: [...], pagination: {...} } }
+        if (
+          action.payload &&
+          action.payload.appointments &&
+          Array.isArray(action.payload.appointments)
+        ) {
+          state.myBookings = action.payload.appointments;
+        } else if (Array.isArray(action.payload)) {
+          state.myBookings = action.payload;
+        } else if (action.payload && Array.isArray(action.payload.bookings)) {
+          state.myBookings = action.payload.bookings;
+        } else if (action.payload && Array.isArray(action.payload.data)) {
+          state.myBookings = action.payload.data;
+        } else {
+          state.myBookings = [];
+        }
+      })
+      .addCase(fetchMyBookings.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Fetch booking details
+      .addCase(fetchBookingDetails.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchBookingDetails.fulfilled, (state, action) => {
+        state.loading = false;
+        state.bookingDetails = action.payload; // Assuming `bookingDetails` is part of the state
+      })
+      .addCase(fetchBookingDetails.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Reschedule booking
+      .addCase(rescheduleBooking.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(rescheduleBooking.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(rescheduleBooking.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Cancel booking
+      .addCase(cancelBooking.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(cancelBooking.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(cancelBooking.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Fetch awaiting confirmation bookings
+      .addCase(fetchAwaitingConfirmationBookings.pending, (state) => {
+        state.awaitingConfirmationLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchAwaitingConfirmationBookings.fulfilled, (state, action) => {
+        state.awaitingConfirmationLoading = false;
+        state.awaitingConfirmationBookings = action.payload.data.appointments;
+        state.awaitingConfirmationPagination = action.payload.data.pagination;
+      })
+      .addCase(fetchAwaitingConfirmationBookings.rejected, (state, action) => {
+        state.awaitingConfirmationLoading = false;
+        state.error = action.payload as string;
+      })
+      // Confirm booking
+      .addCase(confirmBooking.pending, (state) => {
+        state.confirmBookingLoading = true;
+        state.error = null;
+      })
+      .addCase(confirmBooking.fulfilled, (state, action) => {
+        state.confirmBookingLoading = false;
+        // Remove confirmed booking from awaiting list
+        state.awaitingConfirmationBookings =
+          state.awaitingConfirmationBookings.filter(
+            (booking) => booking._id !== action.payload.data._id
+          );
+      })
+      .addCase(confirmBooking.rejected, (state, action) => {
+        state.confirmBookingLoading = false;
+        state.error = action.payload as string;
+      })
+      // Fetch confirmed bookings
+      .addCase(fetchConfirmedBookings.pending, (state) => {
+        state.confirmedBookingsLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchConfirmedBookings.fulfilled, (state, action) => {
+        state.confirmedBookingsLoading = false;
+        state.confirmedBookings = action.payload.data.appointments;
+        state.confirmedBookingsPagination = action.payload.data.pagination;
+      })
+      .addCase(fetchConfirmedBookings.rejected, (state, action) => {
+        state.confirmedBookingsLoading = false;
+        state.error = action.payload as string;
+      })
+      // Fetch pending offline payment bookings
+      .addCase(fetchPendingOfflinePaymentBookings.pending, (state) => {
+        state.pendingOfflinePaymentLoading = true;
+        state.error = null;
+      })
+      .addCase(
+        fetchPendingOfflinePaymentBookings.fulfilled,
+        (state, action) => {
+          state.pendingOfflinePaymentLoading = false;
+          state.pendingOfflinePaymentBookings =
+            action.payload.data.appointments;
+          state.pendingOfflinePaymentPagination =
+            action.payload.data.pagination;
+        }
+      )
+      .addCase(fetchPendingOfflinePaymentBookings.rejected, (state, action) => {
+        state.pendingOfflinePaymentLoading = false;
+        state.error = action.payload as string;
+      })
+      // Fetch customer feedback
+      .addCase(getCustomerFeedback.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getCustomerFeedback.fulfilled, (state, action) => {
+        state.loading = false;
+        // Store feedback data in state
+        const feedbackData = action.payload.data;
+        const appointmentId = action.meta.arg;
+
+        // Update feedback in myBookings if it exists
+        if (state.myBookings && Array.isArray(state.myBookings)) {
+          const bookingIndex = state.myBookings.findIndex(
+            (booking) => booking._id === appointmentId
+          );
+          if (bookingIndex !== -1) {
+            state.myBookings[bookingIndex].feedback = feedbackData;
+          }
+        }
+      })
+      .addCase(getCustomerFeedback.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Submit customer feedback
+      .addCase(submitCustomerFeedback.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(submitCustomerFeedback.fulfilled, (state, action) => {
+        state.loading = false;
+        // Update the booking with feedback data
+        const feedbackData = action.payload.data;
+        const appointmentId = action.meta.arg.appointmentId;
+
+        // Update feedback in myBookings if it exists
+        if (state.myBookings && Array.isArray(state.myBookings)) {
+          const bookingIndex = state.myBookings.findIndex(
+            (booking) => booking._id === appointmentId
+          );
+          if (bookingIndex !== -1) {
+            state.myBookings[bookingIndex].feedback = {
+              ...feedbackData,
+              submittedAt: new Date().toISOString(),
+            };
+          }
+        }
+      })
+      .addCase(submitCustomerFeedback.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+  },
+});
+
+export const {
+  setCurrentStep,
+  nextStep,
+  prevStep,
+  setSelectedVehicle,
+  setSelectedServiceCenter,
+  setSelectedService,
+  setSelectedServicePackage,
+  updateBookingData,
+  clearError,
+  updateBookingFeedback,
+  resetBooking,
+} = bookingSlice.actions;
+
+export default bookingSlice.reducer;
