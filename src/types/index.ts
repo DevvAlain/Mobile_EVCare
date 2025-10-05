@@ -136,6 +136,7 @@ export type RootStackParamList = {
   BookingHistory: undefined;
   ManageVehicles: undefined;
   PaymentHistory: undefined;
+  ChangePassword: undefined;
 };
 
 export interface AppState {

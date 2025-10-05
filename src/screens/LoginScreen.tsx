@@ -69,15 +69,12 @@ export const LoginScreen = () => {
         try {
             const result = await dispatch(loginUser(credentials));
             if (loginUser.fulfilled.match(result)) {
+                // Reset navigation to top-level Home screen after successful login
                 navigation.reset({
                     index: 0,
                     routes: [
                         {
-                            name: 'Main',
-                            state: {
-                                index: 0,
-                                routes: [{ name: 'Home' } as any],
-                            },
+                            name: 'Home',
                         } as any,
                     ],
                 });

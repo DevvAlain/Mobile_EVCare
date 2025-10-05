@@ -12,20 +12,20 @@ import {
   Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
 import { useSelector, useDispatch } from 'react-redux';
+import Sidebar from '../components/Sidebar';
+import SidebarOverlay from '../components/SidebarOverlay';
 import { RootStackParamList } from '../types';
 import { RootState } from '../service/store';
 import { AppDispatch } from '../service/store';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
-type NavigationProp = StackNavigationProp<RootStackParamList>;
-
 const HomeScreen = () => {
-  const navigation = useNavigation<NavigationProp>();
+  const navigation = useNavigation<any>();
   const dispatch = useDispatch<AppDispatch>();
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Animation values
@@ -137,7 +137,8 @@ const HomeScreen = () => {
   const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
   return (
-    <Animated.ScrollView
+    <>
+      <Animated.ScrollView
       style={[styles.container, { opacity: fadeAnim }]}
       refreshControl={
         <RefreshControl
@@ -188,10 +189,22 @@ const HomeScreen = () => {
           ) : (
             <TouchableOpacity
               style={styles.profileButton}
-              onPress={() => navigation.navigate('Profile')}
+              onPress={() => setSidebarOpen(true)}
             >
               <View style={styles.profileIcon}>
-                <Text style={styles.profileIconText}>👤</Text>
+                {user?.avatar ? (
+                  <Image source={{ uri: user.avatar }} style={styles.profileIconImage} />
+                ) : (
+                  <Text style={styles.profileIconText}>
+                    {user?.fullName
+                      ? user.fullName
+                          .split(' ')
+                          .map((n) => n[0])
+                          .slice(0, 2)
+                          .join('')
+                      : '👤'}
+                  </Text>
+                )}
               </View>
             </TouchableOpacity>
           )}
@@ -363,7 +376,11 @@ const HomeScreen = () => {
           <Text style={styles.finalCTAArrow}>→</Text>
         </TouchableOpacity>
       </Animated.View>
-    </Animated.ScrollView>
+      </Animated.ScrollView>
+      {/* Sidebar + overlay (mounted at root of this screen) */}
+      <SidebarOverlay isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
+    </>
   );
 };
 
@@ -454,6 +471,11 @@ const styles = StyleSheet.create({
   },
   profileIconText: {
     fontSize: 20,
+  },
+  profileIconImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   heroSection: {
     marginHorizontal: 24,
