@@ -46,11 +46,62 @@ export const SERVICE_CENTER_DETAIL_ENDPOINT = (id: string) =>
   `/service-centers/${id}`;
 
 // Booking endpoints
+export const MY_BOOKINGS_ENDPOINT = `${prodDefault}/api/booking/my-bookings`;
 export const BOOKINGS_ENDPOINT = "/bookings";
 export const BOOKING_DETAIL_ENDPOINT = (id: string) => `/bookings/${id}`;
+export const BOOKING_DETAILS_ENDPOINT = (bookingId: string) =>
+  `${prodDefault}/api/booking/${bookingId}`;
+export const BOOKING_TIME_SLOTS_ENDPOINT = (
+  serviceCenterId: string,
+  date: string
+) =>
+  `${prodDefault}/api/booking/service-centers/${serviceCenterId}/slots?date=${date}`;
+export const APPOINTMENT_PROGRESS_ENDPOINT = (appointmentId: string) =>
+  `${prodDefault}/api/appointments/${appointmentId}/progress`;
+export const TECHNICIAN_PROGRESS_QUOTE_RESPONSE_ENDPOINT = (
+  progressId: string
+) => `${prodDefault}/api/work-progress/${progressId}/quote-response`;
+
 
 // Vehicle endpoints
 export const VEHICLES_ENDPOINT = "/vehicles";
+export const CREATE_VEHICLE_ENDPOINT = `${prodDefault}/api/vehicles`;
+
+export const POPULAR_SERVICE_TYPES_ENDPOINT = `${prodDefault}/api/service-types/popular/list`;
+
+export const COMPATIBLE_SERVICES_ENDPOINT = (vehicleId: string) =>
+  `${prodDefault}/api/booking/vehicles/${vehicleId}/services`;
+
+export const COMPATIBLE_PACKAGES_ENDPOINT = (vehicleId: string) =>
+  `${prodDefault}/api/service-packages/vehicle/${vehicleId}/compatible`;
+
+export const CREATE_BOOKING_ENDPOINT = `${prodDefault}/api/booking`;
+
+export const BOOKING_SERVICE_CENTERS_ENDPOINT = `${prodDefault}/api/booking/service-centers`;
+
+export const SERVICE_CENTER_NEARBY_ENDPOINT = `${prodDefault}/api/service-centers/nearby/search`;
+
+export const BOOKING_RESCHEDULE_ENDPOINT = (bookingId: string) =>
+  `${prodDefault}/api/booking/${bookingId}/reschedule`;
+
+export const BOOKING_CANCEL_ENDPOINT = (bookingId: string) =>
+  `${prodDefault}/api/booking/${bookingId}/cancel`;
+
+export const BOOKING_AWAITING_CONFIRMATION_ENDPOINT = `${prodDefault}/api/booking/awaiting-confirmation`;
+
+export const BOOKING_CONFIRM_ENDPOINT = (bookingId: string) =>
+  `${prodDefault}/api/booking/${bookingId}/confirm`;
+
+export const BOOKINGS_CONFIRMED_ENDPOINT = `${prodDefault}/api/bookings/confirmed`;
+
+
+export const BOOKINGS_PENDING_OFFLINE_PAYMENT_ENDPOINT = `${prodDefault}/api/bookings/pending-offline-payment`;
+
+export const SUBMIT_CUSTOMER_FEEDBACK_ENDPOINT = (appointmentId: string) =>
+  `${prodDefault}/api/appointments/${appointmentId}/feedback`;
+
+export const GET_CUSTOMER_FEEDBACK_ENDPOINT = (appointmentId: string) =>
+  `${prodDefault}/api/appointments/${appointmentId}/feedback`;
 
 // Payment endpoints
 export const PAYMENTS_ENDPOINT = "/payments";
