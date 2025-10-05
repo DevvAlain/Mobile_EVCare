@@ -1,137 +1,206 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Switch } from "react-native";
-import { useAppSelector, useAppDispatch } from "../service/store";
-import { setTheme, setLanguage } from "../service/slices/appSlice";
-import { COLORS, SPACING, FONT_SIZES } from "../service/constants";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { useSelector, useDispatch } from "react-redux";
+import { RootStackParamList } from "../types";
+import { RootState } from "../service/store";
+import { AppDispatch } from "../service/store";
+import { logout } from "../service/slices/authSlice";
+
+type NavigationProp = StackNavigationProp<RootStackParamList>;
 
 const SettingsScreen = () => {
-  const dispatch = useAppDispatch();
-  const { theme, language } = useAppSelector((state) => state.app);
+  const navigation = useNavigation<NavigationProp>();
+  const dispatch = useDispatch<AppDispatch>();
+  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
-  const toggleTheme = () => {
-    dispatch(setTheme(theme === "light" ? "dark" : "light"));
-  };
-
-  const toggleLanguage = () => {
-    dispatch(setLanguage(language === "en" ? "vi" : "en"));
+  const handleLogout = () => {
+    Alert.alert(
+      "Đăng xuất",
+      "Bạn có chắc chắn muốn đăng xuất?",
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Đăng xuất",
+          style: "destructive",
+          onPress: () => {
+            dispatch(logout());
+            const rootNav = navigation.getParent() || navigation;
+            rootNav.reset({
+              index: 0,
+              routes: [
+                {
+                  name: 'Main',
+                  state: {
+                    index: 0,
+                    routes: [{ name: 'Home' } as any],
+                  },
+                } as any,
+              ],
+            });
+          },
+        },
+      ]
+    );
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: theme === "light" ? COLORS.WHITE : COLORS.BLACK },
-      ]}>
-      <Text
-        style={[
-          styles.title,
-          { color: theme === "light" ? COLORS.BLACK : COLORS.WHITE },
-        ]}>
-        Settings
-      </Text>
-
-      <View style={styles.settingItem}>
-        <Text
-          style={[
-            styles.settingLabel,
-            { color: theme === "light" ? COLORS.BLACK : COLORS.WHITE },
-          ]}>
-          Dark Mode
-        </Text>
-        <Switch
-          value={theme === "dark"}
-          onValueChange={toggleTheme}
-          trackColor={{ false: COLORS.GRAY[300], true: COLORS.PRIMARY }}
-          thumbColor={theme === "dark" ? COLORS.WHITE : COLORS.GRAY[300]}
-        />
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Cài đặt</Text>
+        <Text style={styles.subtitle}>Quản lý tài khoản và ứng dụng</Text>
       </View>
 
-      <View style={styles.settingItem}>
-        <Text
-          style={[
-            styles.settingLabel,
-            { color: theme === "light" ? COLORS.BLACK : COLORS.WHITE },
-          ]}>
-          Language: {language === "en" ? "English" : "Tiếng Việt"}
-        </Text>
-        <TouchableOpacity style={styles.button} onPress={toggleLanguage}>
-          <Text style={styles.buttonText}>
-            Switch to {language === "en" ? "Tiếng Việt" : "English"}
-          </Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Tài khoản</Text>
+        <TouchableOpacity style={styles.menuItem}>
+          <Text style={styles.menuIcon}>👤</Text>
+          <Text style={styles.menuText}>Thông tin cá nhân</Text>
+          <Text style={styles.arrow}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuItem}>
+          <Text style={styles.menuIcon}>🔒</Text>
+          <Text style={styles.menuText}>Bảo mật</Text>
+          <Text style={styles.arrow}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuItem}>
+          <Text style={styles.menuIcon}>🔔</Text>
+          <Text style={styles.menuText}>Thông báo</Text>
+          <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.infoSection}>
-        <Text
-          style={[
-            styles.infoText,
-            { color: theme === "light" ? COLORS.GRAY[600] : COLORS.GRAY[300] },
-          ]}>
-          App Version: 1.0.0
-        </Text>
-        <Text
-          style={[
-            styles.infoText,
-            { color: theme === "light" ? COLORS.GRAY[600] : COLORS.GRAY[300] },
-          ]}>
-          Current Theme: {theme}
-        </Text>
-        <Text
-          style={[
-            styles.infoText,
-            { color: theme === "light" ? COLORS.GRAY[600] : COLORS.GRAY[300] },
-          ]}>
-          Current Language: {language}
-        </Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Ứng dụng</Text>
+        <TouchableOpacity style={styles.menuItem}>
+          <Text style={styles.menuIcon}>🌙</Text>
+          <Text style={styles.menuText}>Chế độ tối</Text>
+          <Text style={styles.arrow}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuItem}>
+          <Text style={styles.menuIcon}>🌍</Text>
+          <Text style={styles.menuText}>Ngôn ngữ</Text>
+          <Text style={styles.arrow}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuItem}>
+          <Text style={styles.menuIcon}>📱</Text>
+          <Text style={styles.menuText}>Về ứng dụng</Text>
+          <Text style={styles.arrow}>›</Text>
+        </TouchableOpacity>
       </View>
-    </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Hỗ trợ</Text>
+        <TouchableOpacity style={styles.menuItem}>
+          <Text style={styles.menuIcon}>❓</Text>
+          <Text style={styles.menuText}>Trung tâm trợ giúp</Text>
+          <Text style={styles.arrow}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuItem}>
+          <Text style={styles.menuIcon}>📞</Text>
+          <Text style={styles.menuText}>Liên hệ</Text>
+          <Text style={styles.arrow}>›</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuItem}>
+          <Text style={styles.menuIcon}>⭐</Text>
+          <Text style={styles.menuText}>Đánh giá ứng dụng</Text>
+          <Text style={styles.arrow}>›</Text>
+        </TouchableOpacity>
+      </View>
+
+      {isAuthenticated && (
+        <View style={styles.logoutSection}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutText}>Đăng xuất</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: SPACING.MD,
+    backgroundColor: '#f8fafc',
+  },
+  header: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
   },
   title: {
-    fontSize: FONT_SIZES.XXL,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: SPACING.XL,
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 8,
   },
-  settingItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: SPACING.MD,
+  subtitle: {
+    fontSize: 16,
+    color: '#64748b',
+  },
+  section: {
+    backgroundColor: '#fff',
+    marginTop: 20,
+    marginHorizontal: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    padding: 16,
+    backgroundColor: '#f8fafc',
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.GRAY[200],
-    marginBottom: SPACING.MD,
+    borderBottomColor: '#e2e8f0',
   },
-  settingLabel: {
-    fontSize: FONT_SIZES.LG,
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  menuIcon: {
+    fontSize: 20,
+    marginRight: 16,
+    width: 24,
+  },
+  menuText: {
     flex: 1,
+    fontSize: 16,
+    color: '#1e293b',
   },
-  button: {
-    backgroundColor: COLORS.PRIMARY,
-    paddingHorizontal: SPACING.MD,
-    paddingVertical: SPACING.SM,
-    borderRadius: 6,
+  arrow: {
+    fontSize: 20,
+    color: '#cbd5e1',
   },
-  buttonText: {
-    color: COLORS.WHITE,
-    fontSize: FONT_SIZES.SM,
-    fontWeight: "600",
+  logoutSection: {
+    margin: 20,
   },
-  infoSection: {
-    marginTop: SPACING.XL,
-    padding: SPACING.MD,
-    backgroundColor: COLORS.GRAY[100],
-    borderRadius: 8,
+  logoutButton: {
+    backgroundColor: '#ef4444',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
   },
-  infoText: {
-    fontSize: FONT_SIZES.MD,
-    marginBottom: SPACING.SM,
+  logoutText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

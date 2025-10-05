@@ -1,22 +1,82 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { axiosInstance } from "../constants/axiosConfig";
+import { User, UpdateProfileData } from "../../types";
 
 interface UserState {
   currentUser: User | null;
-  isAuthenticated: boolean;
-  users: User[];
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: UserState = {
   currentUser: null,
-  isAuthenticated: false,
-  users: [],
+  loading: false,
+  error: null,
 };
+
+export const fetchUserProfile = createAsyncThunk<
+  User,
+  void,
+  { rejectValue: string }
+>("user/fetchProfile", async (_, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.get("/user/profile");
+    return response.data.user as User;
+  } catch (err: unknown) {
+    const error = err as any;
+    const message =
+      error.response?.data?.message ||
+      error.message ||
+      "Lấy thông tin người dùng thất bại";
+    return rejectWithValue(message);
+  }
+});
+
+export const updateUserProfile = createAsyncThunk<
+  User,
+  UpdateProfileData,
+  { rejectValue: string }
+>("user/updateProfile", async (data, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.put("/user/profile", data);
+    return response.data.user as User;
+  } catch (err: unknown) {
+    const error = err as any;
+    const message =
+      error.response?.data?.message ||
+      error.message ||
+      "Cập nhật thông tin thất bại";
+    return rejectWithValue(message);
+  }
+});
+
+export const uploadAvatar = createAsyncThunk<
+  User,
+  { uri: string; name?: string; type?: string },
+  { rejectValue: string }
+>("user/uploadAvatar", async (fileData, { rejectWithValue }) => {
+  try {
+    const form = new FormData();
+    // @ts-ignore
+    form.append("avatar", {
+      uri: fileData.uri,
+      name: fileData.name || "avatar.jpg",
+      type: fileData.type || "image/jpeg",
+    });
+
+    const response = await axiosInstance.post("/user/upload-avatar", form, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data.user as User;
+  } catch (err: unknown) {
+    const error = err as any;
+    const message =
+      error.response?.data?.message || error.message || "Tải ảnh thất bại";
+    return rejectWithValue(message);
+  }
+});
 
 const userSlice = createSlice({
   name: "user",
@@ -24,36 +84,51 @@ const userSlice = createSlice({
   reducers: {
     setCurrentUser: (state, action: PayloadAction<User | null>) => {
       state.currentUser = action.payload;
-      state.isAuthenticated = !!action.payload;
     },
-    addUser: (state, action: PayloadAction<User>) => {
-      state.users.push(action.payload);
+    clearError: (state) => {
+      state.error = null;
     },
-    updateUser: (state, action: PayloadAction<User>) => {
-      const index = state.users.findIndex(
-        (user) => user.id === action.payload.id
-      );
-      if (index !== -1) {
-        state.users[index] = action.payload;
-      }
-      if (state.currentUser?.id === action.payload.id) {
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchUserProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUserProfile.fulfilled, (state, action) => {
+        state.loading = false;
         state.currentUser = action.payload;
-      }
-    },
-    removeUser: (state, action: PayloadAction<string>) => {
-      state.users = state.users.filter((user) => user.id !== action.payload);
-      if (state.currentUser?.id === action.payload) {
-        state.currentUser = null;
-        state.isAuthenticated = false;
-      }
-    },
-    logout: (state) => {
-      state.currentUser = null;
-      state.isAuthenticated = false;
-    },
+      })
+      .addCase(fetchUserProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Lấy thông tin thất bại";
+      })
+      .addCase(updateUserProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentUser = action.payload;
+      })
+      .addCase(updateUserProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Cập nhật thất bại";
+      })
+      .addCase(uploadAvatar.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(uploadAvatar.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentUser = action.payload;
+      })
+      .addCase(uploadAvatar.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Tải avatar thất bại";
+      });
   },
 });
 
-export const { setCurrentUser, addUser, updateUser, removeUser, logout } =
-  userSlice.actions;
+export const { setCurrentUser, clearError } = userSlice.actions;
 export default userSlice.reducer;

@@ -1,14 +1,19 @@
 import React from "react";
 import { StatusBar } from "expo-status-bar";
 import { Provider } from "react-redux";
-import { store } from "./src/service/store";
+import { PersistGate } from "redux-persist/integration/react";
+import { store, persistor } from "./src/service/store";
 import { RootNavigator } from "./src/navigation";
+import Toast from "react-native-toast-message";
 
 export default function App() {
   return (
     <Provider store={store}>
-      <RootNavigator />
-      <StatusBar style="auto" />
+      <PersistGate loading={null} persistor={persistor}>
+        <RootNavigator />
+        <StatusBar style="auto" />
+        <Toast />
+      </PersistGate>
     </Provider>
   );
 }
