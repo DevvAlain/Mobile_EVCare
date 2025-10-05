@@ -35,16 +35,16 @@ const SettingsScreen = () => {
           text: "Đăng xuất",
           style: "destructive",
           onPress: () => {
-            // Perform local logout then reset navigation to the Auth stack's Login screen
             dispatch(logout());
-            navigation.reset({
+            const rootNav = navigation.getParent() || navigation;
+            rootNav.reset({
               index: 0,
               routes: [
                 {
-                  name: 'Auth',
+                  name: 'Main',
                   state: {
                     index: 0,
-                    routes: [{ name: 'Login' } as any],
+                    routes: [{ name: 'Home' } as any],
                   },
                 } as any,
               ],
