@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, FlatList, RefreshControl, Platform, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, FlatList, RefreshControl, Platform, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons as Icon } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,7 +17,6 @@ import {
   RadioButton,
   SegmentedButtons,
   Snackbar,
-  Text,
   TextInput,
   Chip,
   Badge,
@@ -361,357 +360,197 @@ const BookingHistoryScreen: React.FC = () => {
   };
 
   const BookingItem = ({ item }: { item: Booking }) => (
-    <Card style={styles.bookingCard} elevation={2}>
-      <Card.Content>
-        {/* Header with Date and Status */}
-        <View style={styles.bookingHeader}>
-          <View style={styles.dateSection}>
-            <View style={styles.dateRowBooking}>
-              <Icon name="calendar-outline" size={20} color="#1890ff" />
-              <Text variant="titleMedium" style={styles.bookingDate}>
-                {dayjs(item.appointmentTime?.date).format('DD/MM/YYYY')}
-              </Text>
-              <Badge style={styles.dayBadge}>
-                {dayjs(item.appointmentTime?.date).format('ddd')}
-              </Badge>
-            </View>
-            <Text variant="bodyMedium" style={styles.bookingTime}>
-              {formatTime12h(item.appointmentTime?.startTime || '')} - {formatTime12h(item.appointmentTime?.endTime || '')}
-            </Text>
-          </View>
+    <View style={styles.bookingCard}>
+      {/* Header with Date and Status */}
+      <View style={styles.cardHeader}>
+        <View style={styles.orderInfo}>
+          <Text style={styles.orderCode}>#{item._id.slice(-8)}</Text>
           {renderStatusChip(item.status)}
         </View>
+        <View style={styles.dateInfo}>
+          <Text style={styles.bookingDate}>
+            {dayjs(item.appointmentTime?.date).format('DD/MM/YYYY')}
+          </Text>
+          <Text style={styles.bookingTime}>
+            {formatTime12h(item.appointmentTime?.startTime || '')} - {formatTime12h(item.appointmentTime?.endTime || '')}
+          </Text>
+        </View>
+      </View>
 
-        {/* Service Information */}
-        <View style={styles.serviceSection}>
-          <Text variant="labelMedium" style={styles.sectionLabel}>Dịch vụ</Text>
-          <Text variant="bodyLarge" style={styles.serviceName}>
+      <View style={styles.divider} />
+
+      {/* Service Information */}
+      <View style={styles.serviceInfo}>
+        <View style={styles.serviceItem}>
+          <Text style={styles.serviceLabel}>Dịch vụ:</Text>
+          <Text style={styles.serviceText}>
             {item?.serviceDetails?.isInspectionOnly ? 'Mang xe tới kiểm tra' : (item?.serviceType?.name || 'N/A')}
           </Text>
-          <View style={styles.locationRow}>
-            <Icon name="location-outline" size={16} color="#6B7280" />
-            <Text variant="bodyMedium" style={styles.locationText}>
-              {item?.serviceCenter?.name || 'N/A'}
-            </Text>
-          </View>
         </View>
+        <View style={styles.serviceItem}>
+          <Text style={styles.serviceLabel}>Trung tâm:</Text>
+          <Text style={styles.serviceText}>
+            {item?.serviceCenter?.name || 'N/A'}
+          </Text>
+        </View>
+      </View>
 
-        {/* Feedback Section for Completed Bookings */}
-        {item.status === 'completed' && (
-          <View style={styles.feedbackSection}>
-            {item.feedback && (item.feedback.service || item.feedback.technician || item.feedback.facility || item.feedback.overall) ? (
-              <TouchableOpacity 
-                style={styles.feedbackDisplay}
-                onPress={() => openFeedback(item)}
-              >
-                <View style={styles.feedbackContent}>
-                  <StarRating 
-                    value={averageDetailed(item.feedback)} 
-                    size={16}
-                    showNumber={true}
-                    interactive={false}
-                  />
-                  <Text variant="labelSmall" style={styles.feedbackLabel}>
-                    Bấm để xem chi tiết đánh giá
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ) : (
-              <Button 
-                mode="contained" 
-                icon="star" 
-                onPress={() => openFeedback(item)}
-                style={styles.rateButton}
-                buttonColor="#F59E0B"
-              >
-                Đánh giá
-              </Button>
-            )}
-          </View>
-        )}
-      </Card.Content>
+      {/* Feedback Section for Completed Bookings */}
+      {item.status === 'completed' && (
+        <View style={styles.feedbackSection}>
+          {item.feedback && (item.feedback.service || item.feedback.technician || item.feedback.facility || item.feedback.overall) ? (
+            <TouchableOpacity 
+              style={styles.feedbackDisplay}
+              onPress={() => openFeedback(item)}
+            >
+              <View style={styles.feedbackContent}>
+                <StarRating 
+                  value={averageDetailed(item.feedback)} 
+                  size={16}
+                  showNumber={true}
+                  interactive={false}
+                />
+                <Text style={styles.feedbackLabel}>
+                  Bấm để xem chi tiết đánh giá
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.primaryButton]}
+              onPress={() => openFeedback(item)}
+            >
+              <Text style={[styles.actionButtonText, styles.primaryButtonText]}>Đánh giá</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Action Buttons */}
-      <Card.Actions style={styles.cardActions}>
-        <Button 
-          mode="outlined" 
-          onPress={() => openDetail(item._id)} 
-          icon="eye-outline"
-          compact
+      <View style={styles.cardActions}>
+        <TouchableOpacity
           style={styles.actionButton}
+          onPress={() => openDetail(item._id)}
         >
-          Chi tiết
-        </Button>
-        <Button 
-          mode="outlined" 
-          onPress={() => openProgress(item._id)} 
-          icon="information-circle-outline"
-          compact
+          <Text style={styles.actionButtonText}>Chi tiết</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
           style={styles.actionButton}
+          onPress={() => openProgress(item._id)}
         >
-          Tiến độ
-        </Button>
+          <Text style={styles.actionButtonText}>Tiến độ</Text>
+        </TouchableOpacity>
+        
         {canReschedule(item.status) && (
-          <Button 
-            mode="outlined" 
-            onPress={() => startReschedule(item)} 
-            icon="create-outline"
-            compact
+          <TouchableOpacity
             style={styles.actionButton}
+            onPress={() => startReschedule(item)}
           >
-            Đổi lịch
-          </Button>
+            <Text style={styles.actionButtonText}>Đổi lịch</Text>
+          </TouchableOpacity>
         )}
+        
         {canCancel(item.status) && (
-          <Button 
-            mode="outlined" 
-            textColor="#EF4444" 
-            onPress={() => startCancel(item)} 
-            icon="close-circle-outline"
-            compact
+          <TouchableOpacity
             style={[styles.actionButton, styles.cancelButton]}
+            onPress={() => startCancel(item)}
           >
-            Hủy
-          </Button>
+            <Text style={[styles.actionButtonText, styles.cancelButtonText]}>Hủy</Text>
+          </TouchableOpacity>
         )}
-      </Card.Actions>
-    </Card>
+      </View>
+    </View>
   );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>      
-      {/* Modern Header with Gradient */}
-      <LinearGradient
-        colors={['#1890ff', '#722ed1']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
-      >
+      {/* Header */}
+      {/* <View style={styles.header}>
         <View style={styles.headerContent}>
-          <View style={styles.headerText}>
-            <View style={styles.headerTitleRow}>
-              <Icon name="time-outline" size={28} color="white" />
-              <Text variant="headlineMedium" style={styles.headerTitle}>
-                Lịch sử đặt lịch
-              </Text>
-            </View>
-            <Text variant="bodyLarge" style={styles.headerSubtitle}>
-              Xem và quản lý lịch sử đặt lịch của bạn
-            </Text>
-          </View>
-          <IconButton
-            icon="refresh"
-            iconColor="white"
-            size={24}
-            onPress={handleSearch}
-            disabled={loading}
-            style={styles.refreshButton}
-          />
+          <Text style={styles.headerTitle}>Lịch sử đặt lịch</Text>
+          <Text style={styles.headerSubtitle}>Quản lý lịch hẹn</Text>
         </View>
-      </LinearGradient>
+        <TouchableOpacity
+          style={styles.refreshButton}
+          onPress={handleSearch}
+          disabled={loading}
+        >
+          <Text style={styles.refreshButtonText}>Làm mới</Text>
+        </TouchableOpacity>
+      </View> */}
 
-      {/* Enhanced Statistics Cards */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.statsContainer}
-        style={styles.statsScrollView}
-      >
-        <Surface style={[styles.statCard, { backgroundColor: '#1890ff' }]} elevation={1}>
-          <View style={styles.statContent}>
-            <Icon name="calendar-outline" size={16} color="white" />
-            <Text variant="labelMedium" style={styles.statLabel}>Tổng số lịch</Text>
-            <Text variant="headlineMedium" style={styles.statValue}>{stats.total}</Text>
+      {/* Statistics */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{stats.total}</Text>
+            <Text style={styles.statLabel}>Tổng số lịch</Text>
           </View>
-        </Surface>
-        
-        <Surface style={[styles.statCard, { backgroundColor: '#52c41a' }]} elevation={2}>
-          <View style={styles.statContent}>
-            <Icon name="checkmark-circle-outline" size={16} color="white" />
-            <Text variant="labelMedium" style={styles.statLabel}>Đã xác nhận</Text>
-            <Text variant="headlineMedium" style={styles.statValue}>{stats.confirmed}</Text>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, styles.confirmedValue]}>{stats.confirmed}</Text>
+            <Text style={styles.statLabel}>Đã xác nhận</Text>
           </View>
-        </Surface>
-        
-        <Surface style={[styles.statCard, { backgroundColor: '#faad14' }]} elevation={2}>
-          <View style={styles.statContent}>
-            <Icon name="time-outline" size={16} color="white" />
-            <Text variant="labelMedium" style={styles.statLabel}>Đang thực hiện</Text>
-            <Text variant="headlineMedium" style={styles.statValue}>{stats.inProgress}</Text>
+        </View>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, styles.inProgressValue]}>{stats.inProgress}</Text>
+            <Text style={styles.statLabel}>Đang thực hiện</Text>
           </View>
-        </Surface>
-        
-        <Surface style={[styles.statCard, { backgroundColor: '#52c41a' }]} elevation={2}>
-          <View style={styles.statContent}>
-            <Icon name="checkmark-done-outline" size={16} color="white" />
-            <Text variant="labelMedium" style={styles.statLabel}>Hoàn thành</Text>
-            <Text variant="headlineMedium" style={styles.statValue}>{stats.completed}</Text>
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, styles.completedValue]}>{stats.completed}</Text>
+            <Text style={styles.statLabel}>Hoàn thành</Text>
           </View>
-        </Surface>
-        
-        <Surface style={[styles.statCard, { backgroundColor: '#ff4d4f' }]} elevation={2}>
-          <View style={styles.statContent}>
-            <Icon name="close-circle-outline" size={16} color="white" />
-            <Text variant="labelMedium" style={styles.statLabel}>Đã hủy</Text>
-            <Text variant="headlineMedium" style={styles.statValue}>{stats.cancelled}</Text>
-          </View>
-        </Surface>
-      </ScrollView>
+        </View>
+      </View>
 
-      {/* Filter Toggle Button */}
-      <Card style={styles.filterToggleCard} elevation={1}>
-        <Card.Content style={styles.filterToggleContent}>
-          <Button
-            mode="outlined"
-            icon={showFilters ? "filter-remove" : "filter"}
-            onPress={() => setShowFilters(!showFilters)}
-            style={styles.filterToggleButton}
-            labelStyle={styles.filterToggleLabel}
-          >
-            {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
-          </Button>
-          {showFilters && (
-            <View style={styles.filterToggleContent}></View>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* Modern Filters - Conditional Render */}
-      {showFilters && (
-        <Card style={styles.filtersCard} elevation={1}>
-          <Card.Content style={styles.filtersContent}>
-            <View style={styles.filterHeader}>
-              <Icon name="filter-outline" size={18} color="#6B7280" />
-              <Text variant="titleSmall" style={styles.filterTitle}>Bộ lọc</Text>
-            </View>
-          
-          {/* Status Filter */}
-          <View style={styles.filterSection}>
-            <Text variant="labelSmall" style={styles.filterLabel}>Trạng thái</Text>
-            <View style={styles.statusButtons}>
+      {/* Filters */}
+      <View style={styles.filtersContainer}>
+        <Text style={styles.filtersTitle}>Bộ lọc</Text>
+        
+        {/* Status Filter */}
+        <View style={styles.filterRow}>
+          <Text style={styles.filterLabel}>Trạng thái:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.filterButtons}>
               {[
-                { value: 'all', label: 'Tất cả', icon: 'apps-outline' },
-                { value: 'pending_confirmation', label: 'Chờ xác nhận', icon: 'time-outline' },
-                { value: 'confirmed', label: 'Đã xác nhận', icon: 'checkmark-circle-outline' }
-              ].map(({ value, label, icon }) => (
+                { value: 'all', label: 'Tất cả' },
+                { value: 'pending_confirmation', label: 'Chờ xác nhận' },
+                { value: 'confirmed', label: 'Đã xác nhận' },
+                { value: 'in_progress', label: 'Đang thực hiện' },
+                { value: 'completed', label: 'Hoàn thành' },
+                { value: 'cancelled', label: 'Đã hủy' }
+              ].map(({ value, label }) => (
                 <TouchableOpacity
                   key={value}
                   style={[
-                    styles.statusButton,
-                    statusFilter === value && styles.statusButtonActive
+                    styles.filterButton,
+                    statusFilter === value && styles.activeFilterButton
                   ]}
                   onPress={() => setStatusFilter(value)}
                 >
-                  <Icon 
-                    name={icon as any} 
-                    size={14} 
-                    color={statusFilter === value ? 'white' : '#1890ff'} 
-                  />
-                  <Text 
-                    variant="labelSmall" 
-                    style={[
-                      styles.statusButtonText,
-                      statusFilter === value && styles.statusButtonTextActive
-                    ]}
-                  >
+                  <Text style={[
+                    styles.filterButtonText,
+                    statusFilter === value && styles.activeFilterButtonText
+                  ]}>
                     {label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-          </View>
+          </ScrollView>
+        </View>
 
-          {/* Date Range */}
-          <View style={styles.filterSection}>
-            <Text variant="labelSmall" style={styles.filterLabel}>Khoảng thời gian</Text>
-            <View style={styles.dateRowFilter}>
-              <View style={styles.dateInput}>
-                <TextInput
-                  mode="outlined"
-                  label="Từ ngày"
-                  value={fromDate ? dayjs(fromDate).format('DD/MM/YYYY') : ''}
-                  right={<TextInput.Icon icon="calendar" onPress={() => setShowFromPicker(true)} />}
-                  editable={false}
-                  style={styles.dateField}
-                  contentStyle={styles.dateFieldContent}
-                />
-              </View>
-              <View style={styles.dateInput}>
-                <TextInput
-                  mode="outlined"
-                  label="Đến ngày"
-                  value={toDate ? dayjs(toDate).format('DD/MM/YYYY') : ''}
-                  right={<TextInput.Icon icon="calendar" onPress={() => setShowToPicker(true)} />}
-                  editable={false}
-                  style={styles.dateField}
-                  contentStyle={styles.dateFieldContent}
-                />
-              </View>
-            </View>
-          </View>
-
-          {/* Sort Options */}
-          <View style={styles.filterSection}>
-            <Text variant="labelSmall" style={styles.filterLabel}>Sắp xếp</Text>
-            <View style={styles.sortButtons}>
-              {[
-                { value: 'none-', label: 'Không sắp xếp', icon: 'swap-vertical-outline' },
-                { value: 'appointmentTime.date-desc', label: 'Mới nhất', icon: 'arrow-down-outline' },
-                { value: 'appointmentTime.date-asc', label: 'Cũ nhất', icon: 'arrow-up-outline' }
-              ].map(({ value, label, icon }) => (
-                <TouchableOpacity
-                  key={value}
-                  style={[
-                    styles.sortButton,
-                    (sortBy && sortOrder ? `${sortBy}-${sortOrder}` : 'none-') === value && styles.sortButtonActive
-                  ]}
-                  onPress={() => {
-                    const [sb, so] = value.split('-');
-                    setSortBy(sb === 'none' ? '' : sb);
-                    setSortOrder((so as any) || '');
-                  }}
-                >
-                  <Icon 
-                    name={icon as any} 
-                    size={14} 
-                    color={(sortBy && sortOrder ? `${sortBy}-${sortOrder}` : 'none-') === value ? 'white' : '#1890ff'} 
-                  />
-                  <Text 
-                    variant="labelSmall" 
-                    style={[
-                      styles.sortButtonText,
-                      (sortBy && sortOrder ? `${sortBy}-${sortOrder}` : 'none-') === value && styles.sortButtonTextActive
-                    ]}
-                  >
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Action Buttons */}
-          <View style={styles.filterActions}>
-            <Button 
-              mode="outlined" 
-              icon="filter-remove" 
-              onPress={() => { 
-                setStatusFilter('all'); 
-                setFromDate(null); 
-                setToDate(null); 
-                setSortBy(''); 
-                setSortOrder(''); 
-              }}
-              style={styles.clearButton}
-              labelStyle={styles.clearButtonLabel}
-            >
-              Xóa bộ lọc
-            </Button>
-           
-          </View>
-        </Card.Content>
-      </Card>
-      )}
+        <TouchableOpacity style={styles.clearFiltersButton} onPress={() => { 
+          setStatusFilter('all'); 
+          setFromDate(null); 
+          setToDate(null); 
+          setSortBy(''); 
+          setSortOrder(''); 
+        }}>
+          <Text style={styles.clearFiltersText}>Xóa bộ lọc</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Error */}
       {!!error && (
@@ -723,21 +562,28 @@ const BookingHistoryScreen: React.FC = () => {
         </Card>
       )}
 
-      {/* List */}
-      <FlatList
-        data={list}
-        keyExtractor={(it) => it._id}
-        renderItem={BookingItem}
-        contentContainerStyle={{ padding: 12, paddingBottom: insets.bottom + 24 }}
-        ItemSeparatorComponent={() => <Divider style={{ opacity: 0 }} />}
-        refreshControl={<RefreshControl refreshing={!!loading} onRefresh={fetchList} />}
-        ListEmptyComponent={!loading ? (
-          <View style={{ padding: 24, alignItems: 'center' }}>
-            <Icon name="file-tray-outline" size={48} color={theme.colors.outline} />
-            <Text style={{ marginTop: 8, color: theme.colors.outline }}>Không có dữ liệu đặt lịch</Text>
+      {/* Booking List */}
+      <View style={styles.listContainer}>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#1890ff" />
+            <Text style={styles.loadingText}>Đang tải...</Text>
           </View>
-        ) : null}
-      />
+        ) : list.length > 0 ? (
+          <FlatList
+            data={list}
+            renderItem={BookingItem}
+            keyExtractor={(item) => item._id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+            refreshControl={<RefreshControl refreshing={!!loading} onRefresh={fetchList} />}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Không có dữ liệu đặt lịch</Text>
+          </View>
+        )}
+      </View>
 
       {/* Date pickers */}
       {showFromPicker && (
@@ -764,7 +610,7 @@ const BookingHistoryScreen: React.FC = () => {
             <View style={{ padding: 24 }}><ProgressBar indeterminate /><Text style={{ marginTop: 12 }}>Đang tải...</Text></View>
           ) : (
             <View>
-              <Text variant="titleMedium">Chi tiết lịch hẹn</Text>
+              <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Chi tiết lịch hẹn</Text>
               <Divider style={{ marginVertical: 12 }} />
               <View style={{ gap: 10 }}>
                 <View>
@@ -809,7 +655,7 @@ const BookingHistoryScreen: React.FC = () => {
 
         {/* Progress Modal */}
         <Modal visible={progressOpen} onDismiss={() => setProgressOpen(false)} contentContainerStyle={styles.modalBox}>
-          <Text variant="titleMedium">Tiến độ lịch hẹn</Text>
+          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Tiến độ lịch hẹn</Text>
           <Divider style={{ marginVertical: 12 }} />
           {progressLoading ? (
             <View style={{ paddingVertical: 12 }}>
@@ -875,7 +721,7 @@ const BookingHistoryScreen: React.FC = () => {
 
         {/* Reschedule Modal */}
         <Modal visible={rescheduleOpen} onDismiss={() => setRescheduleOpen(false)} contentContainerStyle={styles.modalBox}>
-          <Text variant="titleMedium">Đổi lịch hẹn</Text>
+          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Đổi lịch hẹn</Text>
           <Divider style={{ marginVertical: 12 }} />
           <TextInput
             mode="outlined"
@@ -914,7 +760,7 @@ const BookingHistoryScreen: React.FC = () => {
 
         {/* Cancel Modal */}
         <Modal visible={cancelOpen} onDismiss={() => setCancelOpen(false)} contentContainerStyle={styles.modalBox}>
-          <Text variant="titleMedium">Hủy lịch hẹn</Text>
+          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Hủy lịch hẹn</Text>
           <Divider style={{ marginVertical: 12 }} />
           <Card mode="contained" style={{ backgroundColor: '#FEF2F2' }}>
             <Card.Content>
@@ -945,7 +791,7 @@ const BookingHistoryScreen: React.FC = () => {
         <Modal visible={feedbackOpen} onDismiss={() => setFeedbackOpen(false)} contentContainerStyle={styles.modalBox}>
           <View style={styles.modalHeader}>
             <Icon name="star-outline" size={24} color="#F59E0B" />
-            <Text variant="headlineSmall" style={styles.modalTitle}>
+            <Text style={[styles.modalTitle, { fontSize: 20, fontWeight: 'bold' }]}>
               {feedbackViewOnly ? 'Đánh giá của bạn (Đã hoàn thành)' : 'Đánh giá dịch vụ'}
             </Text>
           </View>
@@ -956,12 +802,12 @@ const BookingHistoryScreen: React.FC = () => {
               <Card.Content>
                 <View style={styles.bookingInfoHeader}>
                   <Icon name="information-circle-outline" size={20} color="#1890ff" />
-                  <Text variant="titleSmall" style={styles.bookingInfoTitle}>Thông tin lịch hẹn</Text>
+                  <Text style={[styles.bookingInfoTitle, { fontSize: 16, fontWeight: '600' }]}>Thông tin lịch hẹn</Text>
                 </View>
-                <Text variant="bodyLarge" style={styles.bookingServiceName}>
+                <Text style={[styles.bookingServiceName, { fontSize: 16, fontWeight: '600' }]}>
                   {feedbackFor?.serviceType?.name || 'Mang xe tới kiểm tra'} - {feedbackFor?.serviceCenter?.name}
                 </Text>
-                <Text variant="bodyMedium" style={styles.bookingDateTime}>
+                <Text style={[styles.bookingDateTime, { fontSize: 14, color: '#6B7280' }]}>
                   {dayjs(feedbackFor.appointmentTime?.date).format('ddd, DD MMM YYYY')} - {formatTime12h(feedbackFor.appointmentTime?.startTime || '')}
                 </Text>
               </Card.Content>
@@ -973,9 +819,9 @@ const BookingHistoryScreen: React.FC = () => {
               <Card.Content>
                 <View style={styles.completedHeader}>
                   <Icon name="checkmark-circle-outline" size={20} color="#10B981" />
-                  <Text variant="titleSmall" style={styles.completedTitle}>Đánh giá đã hoàn thành</Text>
+                  <Text style={[styles.completedTitle, { fontSize: 16, fontWeight: '600' }]}>Đánh giá đã hoàn thành</Text>
                 </View>
-                <Text variant="bodyMedium" style={styles.completedText}>
+                <Text style={[styles.completedText, { fontSize: 14, color: '#059669' }]}>
                   Cảm ơn bạn đã đánh giá dịch vụ. Đánh giá này không thể chỉnh sửa.
                 </Text>
               </Card.Content>
@@ -983,7 +829,7 @@ const BookingHistoryScreen: React.FC = () => {
           )}
 
           <View style={styles.ratingSection}>
-            <Text variant="titleMedium" style={styles.ratingLabel}>
+            <Text style={[styles.ratingLabel, { fontSize: 16, fontWeight: '600' }]}>
               Đánh giá tổng thể {!feedbackViewOnly && <Text style={{ color: '#EF4444' }}>*</Text>}
             </Text>
             <StarRating 
@@ -995,14 +841,14 @@ const BookingHistoryScreen: React.FC = () => {
               interactive={!feedbackViewOnly}
             />
             {!feedbackViewOnly && fbOverall < 1 && (
-              <Text variant="bodySmall" style={styles.errorText}>Vui lòng đánh giá tổng thể</Text>
+              <Text style={[styles.errorText, { fontSize: 12, color: '#EF4444' }]}>Vui lòng đánh giá tổng thể</Text>
             )}
           </View>
 
           <View style={styles.detailedRatings}>
             <View style={styles.ratingRow}>
               <View style={styles.ratingItem}>
-                <Text variant="bodyMedium" style={styles.ratingItemLabel}>Chất lượng dịch vụ</Text>
+                <Text style={[styles.ratingItemLabel, { fontSize: 14, fontWeight: '500' }]}>Chất lượng dịch vụ</Text>
                 <StarRating 
                   value={fbService} 
                   editable={!feedbackViewOnly} 
@@ -1013,7 +859,7 @@ const BookingHistoryScreen: React.FC = () => {
                 />
               </View>
               <View style={styles.ratingItem}>
-                <Text variant="bodyMedium" style={styles.ratingItemLabel}>Thái độ kỹ thuật viên</Text>
+                <Text style={[styles.ratingItemLabel, { fontSize: 14, fontWeight: '500' }]}>Thái độ kỹ thuật viên</Text>
                 <StarRating 
                   value={fbTech} 
                   editable={!feedbackViewOnly} 
@@ -1026,7 +872,7 @@ const BookingHistoryScreen: React.FC = () => {
             </View>
             <View style={styles.ratingRow}>
               <View style={styles.ratingItem}>
-                <Text variant="bodyMedium" style={styles.ratingItemLabel}>Cơ sở vật chất</Text>
+                <Text style={[styles.ratingItemLabel, { fontSize: 14, fontWeight: '500' }]}>Cơ sở vật chất</Text>
                 <StarRating 
                   value={fbFacility} 
                   editable={!feedbackViewOnly} 
@@ -1040,13 +886,13 @@ const BookingHistoryScreen: React.FC = () => {
           </View>
 
           <View style={styles.commentSection}>
-            <Text variant="titleMedium" style={styles.commentLabel}>
+            <Text style={[styles.commentLabel, { fontSize: 16, fontWeight: '600', flexDirection: 'row', alignItems: 'center' }]}>
               <Icon name="chatbubble-outline" size={16} color="#6B7280" /> Nhận xét của bạn
             </Text>
             {feedbackViewOnly ? (
               <Card mode="contained" style={styles.commentDisplayCard}>
                 <Card.Content>
-                  <Text variant="bodyMedium" style={styles.commentText}>
+                  <Text style={[styles.commentText, { fontSize: 14, color: '#374151' }]}>
                     {fbComment || 'Không có nhận xét'}
                   </Text>
                 </Card.Content>
@@ -1066,7 +912,7 @@ const BookingHistoryScreen: React.FC = () => {
 
           {feedbackViewOnly && feedbackFor?.feedback?.submittedAt && (
             <View style={styles.submittedInfo}>
-              <Text variant="bodySmall" style={styles.submittedText}>
+              <Text style={[styles.submittedText, { fontSize: 12, color: '#6B7280' }]}>
                 Đánh giá lúc: {new Date(feedbackFor.feedback.submittedAt).toLocaleString('vi-VN')}
               </Text>
             </View>
@@ -1105,273 +951,190 @@ const BookingHistoryScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
-  
-  // Header styles
-  headerGradient: {
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    marginBottom: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    padding: 16,
+  },
+  header: {
+    backgroundColor: '#667eea',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerText: {
     flex: 1,
-  },
-  headerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 2,
   },
   headerTitle: {
     color: 'white',
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   headerSubtitle: {
     color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    marginTop: 4,
   },
   refreshButton: {
     backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
   },
-
-  // Stats styles
-  statsScrollView: {
-    marginBottom: 12, 
+  refreshButtonText: {
+    color: 'white',
+    fontSize: 12,
   },
   statsContainer: {
-    paddingHorizontal: 16,
-    gap: 12,
+    marginBottom: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
   },
   statCard: {
-    width: 140,
-    borderRadius: 12,
+    flex: 1,
+    backgroundColor: 'white',
     padding: 12,
-  },
-  statContent: {
+    marginHorizontal: 4,
+    borderRadius: 8,
     alignItems: 'center',
-    gap: 8,
-    padding: 4,
-    margin: 4,
-  },
-  statLabel: {
-    color: 'rgba(255,255,255,0.9)',
-    textAlign: 'center',
   },
   statValue: {
-    color: 'white',
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#52c41a',
+  },
+  confirmedValue: {
+    color: '#3B82F6',
+  },
+  inProgressValue: {
+    color: '#faad14',
+  },
+  completedValue: {
+    color: '#52c41a',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
 
-  // Filter styles
-  filterToggleCard: {
-    marginHorizontal: 16,
-    marginBottom: 2,
-    borderRadius: 16,
-    backgroundColor: '#F8F9FA',
-  },
-  filterToggleContent: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  filterToggleButton: {
-    borderRadius: 20,
-    borderColor: '#8B5CF6',
-    borderWidth: 1,
+  filtersContainer: {
     backgroundColor: 'white',
-  },
-  filterToggleLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8B5CF6',
-  },
-  searchButton: {
-    borderRadius: 20,
-    backgroundColor: '#8B5CF6',
-  },
-  searchButtonLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'white',
-  },
-  filtersCard: {
-    marginHorizontal: 16,
+    padding: 16,
+    borderRadius: 8,
     marginBottom: 16,
-    borderRadius: 16,
-    backgroundColor: '#F8F9FA',
   },
-  filtersContent: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  filterHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  filtersTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
     marginBottom: 12,
   },
-  filterTitle: {
-    fontWeight: '600',
-    color: '#374151',
-    fontSize: 14,
-  },
-  filterSection: {
+  filterRow: {
     marginBottom: 12,
   },
   filterLabel: {
-    color: '#6B7280',
-    marginBottom: 6,
+    fontSize: 14,
     fontWeight: '500',
-    fontSize: 11,
+    marginBottom: 8,
   },
-  statusButtons: {
+  filterButtons: {
     flexDirection: 'row',
-    gap: 6,
-    flexWrap: 'wrap',
   },
-  statusButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
+  filterButton: {
+    paddingHorizontal: 12,
     paddingVertical: 6,
+    marginRight: 8,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#1890ff',
-    backgroundColor: 'white',
+    backgroundColor: '#f0f0f0',
   },
-  statusButtonActive: {
+  activeFilterButton: {
     backgroundColor: '#1890ff',
   },
-  statusButtonText: {
-    color: '#1890ff',
-    fontWeight: '500',
-    fontSize: 11,
+  filterButtonText: {
+    fontSize: 12,
+    color: '#666',
   },
-  statusButtonTextActive: {
+  activeFilterButtonText: {
     color: 'white',
   },
-  dateRowFilter: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  dateInput: {
-    flex: 1,
-  },
-  dateField: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-  },
-  dateFieldContent: {
-    fontSize: 12,
-  },
-  sortButtons: {
-    flexDirection: 'row',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  sortButton: {
-    flexDirection: 'row',
+  clearFiltersButton: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 8,
+    borderRadius: 4,
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#1890ff',
-    backgroundColor: 'white',
   },
-  sortButtonActive: {
-    backgroundColor: '#1890ff',
-  },
-  sortButtonText: {
-    color: '#1890ff',
-    fontWeight: '500',
-    fontSize: 11,
-  },
-  sortButtonTextActive: {
-    color: 'white',
-  },
-  filterActions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
-  },
-  clearButton: {
-    flex: 1,
-    borderRadius: 20,
-    borderColor: '#8B5CF6',
-    borderWidth: 1,
-    backgroundColor: 'white',
-  },
-  clearButtonLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#8B5CF6',
-  },
-  refreshButtonAction: {
-    flex: 1,
+  clearFiltersText: {
+    fontSize: 14,
+    color: '#666',
   },
 
-  // Booking card styles
   bookingCard: {
-    marginHorizontal: 16,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 16,
     marginBottom: 12,
-    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  bookingHeader: {
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
   },
-  dateSection: {
+  orderInfo: {
     flex: 1,
   },
-  dateRowBooking: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  orderCode: {
+    fontSize: 12,
+    color: '#1890ff',
+    fontWeight: 'bold',
     marginBottom: 4,
+  },
+  dateInfo: {
+    alignItems: 'flex-end',
   },
   bookingDate: {
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  dayBadge: {
-    backgroundColor: '#E5E7EB',
-    color: '#374151',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#52c41a',
   },
   bookingTime: {
-    color: '#6B7280',
-    marginLeft: 28,
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
-  serviceSection: {
+  divider: {
+    height: 1,
+    backgroundColor: '#f0f0f0',
+    marginVertical: 12,
+  },
+  serviceInfo: {
     marginBottom: 12,
   },
-  sectionLabel: {
-    color: '#6B7280',
-    marginBottom: 4,
-    fontWeight: '500',
-  },
-  serviceName: {
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  locationRow: {
+  serviceItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    marginBottom: 4,
   },
-  locationText: {
-    color: '#6B7280',
+  serviceLabel: {
+    fontSize: 12,
+    color: '#666',
+    width: 80,
+  },
+  serviceText: {
+    fontSize: 12,
+    color: '#333',
+    flex: 1,
   },
   feedbackSection: {
-    marginTop: 8,
+    marginBottom: 12,
   },
   feedbackDisplay: {
     backgroundColor: '#F9FAFB',
@@ -1385,21 +1148,64 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   feedbackLabel: {
+    fontSize: 12,
     color: '#6B7280',
   },
-  rateButton: {
-    borderRadius: 8,
-  },
   cardActions: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
   actionButton: {
-    borderRadius: 8,
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+    backgroundColor: '#f0f0f0',
+    marginHorizontal: 4,
+    alignItems: 'center',
+  },
+  primaryButton: {
+    backgroundColor: '#1890ff',
+  },
+  actionButtonText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  primaryButtonText: {
+    color: 'white',
   },
   cancelButton: {
-    borderColor: '#EF4444',
+    backgroundColor: '#ff4d4f',
+  },
+  cancelButtonText: {
+    color: 'white',
+  },
+  listContainer: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 8,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
   },
 
   // Modal styles
