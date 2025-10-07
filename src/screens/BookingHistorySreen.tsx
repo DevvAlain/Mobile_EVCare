@@ -1,11 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, FlatList, RefreshControl, Platform, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { View, FlatList, RefreshControl, Platform, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Text, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons as Icon } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import dayjs from 'dayjs';
 import {
-  Appbar,
   Button,
   Card,
   Divider,
@@ -14,15 +12,10 @@ import {
   Paragraph,
   Portal,
   ProgressBar,
-  RadioButton,
-  SegmentedButtons,
   Snackbar,
   TextInput,
   Chip,
-  Badge,
   useTheme,
-  Surface,
-  IconButton
 } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -139,6 +132,10 @@ const BookingHistoryScreen: React.FC = () => {
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [statsExpanded, setStatsExpanded] = useState(true);
+  const animatedHeight = useRef(new Animated.Value(0)).current;
+  const animatedStatsHeight = useRef(new Animated.Value(1)).current;
 
   const [snack, setSnack] = useState<string>('');
 
@@ -206,6 +203,28 @@ const BookingHistoryScreen: React.FC = () => {
   const handleSearch = () => {
     setShowFilters(false);
     fetchList();
+  };
+
+  const toggleFilters = () => {
+    const newExpanded = !filtersExpanded;
+    setFiltersExpanded(newExpanded);
+    
+    Animated.timing(animatedHeight, {
+      toValue: newExpanded ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const toggleStats = () => {
+    const newExpanded = !statsExpanded;
+    setStatsExpanded(newExpanded);
+    
+    Animated.timing(animatedStatsHeight, {
+      toValue: newExpanded ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
   };
 
   useEffect(() => { fetchList(); }, [fetchList]);
@@ -346,7 +365,7 @@ const BookingHistoryScreen: React.FC = () => {
   const renderStatusChip = (status: string) => {
     const m = statusMeta[status] || { color: theme.colors.outline, icon: 'information-circle-outline', label: status };
     return (
-      <Chip icon={m.icon as any} style={{ backgroundColor: `${m.color}20` }} textStyle={{ color: m.color }}>
+      <Chip style={{ backgroundColor: `${m.color}20` }} textStyle={{ color: m.color }}>
         {m.label}
       </Chip>
     );
@@ -360,196 +379,285 @@ const BookingHistoryScreen: React.FC = () => {
   };
 
   const BookingItem = ({ item }: { item: Booking }) => (
-    <View style={styles.bookingCard}>
-      {/* Header with Date and Status */}
+    <TouchableOpacity style={styles.bookingCard} onPress={() => openDetail(item._id)}>
+      {/* Card Header with Status */}
       <View style={styles.cardHeader}>
-        <View style={styles.orderInfo}>
+        <View style={styles.headerLeft}>
           <Text style={styles.orderCode}>#{item._id.slice(-8)}</Text>
-          {renderStatusChip(item.status)}
-        </View>
-        <View style={styles.dateInfo}>
           <Text style={styles.bookingDate}>
             {dayjs(item.appointmentTime?.date).format('DD/MM/YYYY')}
           </Text>
-          <Text style={styles.bookingTime}>
-            {formatTime12h(item.appointmentTime?.startTime || '')} - {formatTime12h(item.appointmentTime?.endTime || '')}
-          </Text>
+        </View>
+        <View style={styles.headerRight}>
+          {renderStatusChip(item.status)}
+          
         </View>
       </View>
 
-      <View style={styles.divider} />
+      {/* Main Content */}
+      <View style={styles.cardContent}>
+        {/* Service Info */}
+        <View style={styles.serviceSection}>
+          <View style={styles.serviceRow}>
+            <Icon name="car-outline" size={18} color="#1890ff" />
+            <View style={styles.serviceInfo}>
+              <Text style={styles.serviceName}>
+                {item?.serviceDetails?.isInspectionOnly ? 'Mang xe tới kiểm tra' : (item?.serviceType?.name || 'N/A')}
+              </Text>
+              <Text style={styles.serviceCenter}>
+                {item?.serviceCenter?.name || 'N/A'}
+              </Text>
+            </View>
+          </View>
+        </View>
 
-      {/* Service Information */}
-      <View style={styles.serviceInfo}>
-        <View style={styles.serviceItem}>
-          <Text style={styles.serviceLabel}>Dịch vụ:</Text>
-          <Text style={styles.serviceText}>
-            {item?.serviceDetails?.isInspectionOnly ? 'Mang xe tới kiểm tra' : (item?.serviceType?.name || 'N/A')}
-          </Text>
+        {/* Time Info */}
+        <View style={styles.timeSection}>
+          <View style={styles.timeRow}>
+            <Icon name="time-outline" size={18} color="#52c41a" />
+            <View style={styles.timeInfo}>
+              <Text style={styles.timeText}>
+                {formatTime12h(item.appointmentTime?.startTime || '')} - {formatTime12h(item.appointmentTime?.endTime || '')}
+              </Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.serviceItem}>
-          <Text style={styles.serviceLabel}>Trung tâm:</Text>
-          <Text style={styles.serviceText}>
-            {item?.serviceCenter?.name || 'N/A'}
-          </Text>
-        </View>
+
+        {/* Feedback Section for Completed Bookings */}
+        {item.status === 'completed' && (
+          <View style={styles.feedbackSection}>
+            {item.feedback && (item.feedback.service || item.feedback.technician || item.feedback.facility || item.feedback.overall) ? (
+              <TouchableOpacity 
+                style={styles.feedbackDisplay}
+                onPress={() => openFeedback(item)}
+              >
+                <View style={styles.feedbackContent}>
+                  <StarRating 
+                    value={averageDetailed(item.feedback)} 
+                    size={16}
+                    showNumber={true}
+                    interactive={false}
+                  />
+                  <Text style={styles.feedbackLabel}>
+                    Xem đánh giá
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={styles.feedbackButton}
+                onPress={() => openFeedback(item)}
+              >
+                <Icon name="star-outline" size={16} color="#F59E0B" />
+                <Text style={styles.feedbackButtonText}>Đánh giá</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
-
-      {/* Feedback Section for Completed Bookings */}
-      {item.status === 'completed' && (
-        <View style={styles.feedbackSection}>
-          {item.feedback && (item.feedback.service || item.feedback.technician || item.feedback.facility || item.feedback.overall) ? (
-            <TouchableOpacity 
-              style={styles.feedbackDisplay}
-              onPress={() => openFeedback(item)}
-            >
-              <View style={styles.feedbackContent}>
-                <StarRating 
-                  value={averageDetailed(item.feedback)} 
-                  size={16}
-                  showNumber={true}
-                  interactive={false}
-                />
-                <Text style={styles.feedbackLabel}>
-                  Bấm để xem chi tiết đánh giá
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.primaryButton]}
-              onPress={() => openFeedback(item)}
-            >
-              <Text style={[styles.actionButtonText, styles.primaryButtonText]}>Đánh giá</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
 
       {/* Action Buttons */}
       <View style={styles.cardActions}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => openDetail(item._id)}
-        >
-          <Text style={styles.actionButtonText}>Chi tiết</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.actionButton}
           onPress={() => openProgress(item._id)}
         >
+          <Icon name="trending-up-outline" size={16} color="#1890ff" />
           <Text style={styles.actionButtonText}>Tiến độ</Text>
         </TouchableOpacity>
-        
-        {canReschedule(item.status) && (
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => startReschedule(item)}
-          >
-            <Text style={styles.actionButtonText}>Đổi lịch</Text>
-          </TouchableOpacity>
-        )}
-        
-        {canCancel(item.status) && (
-          <TouchableOpacity
-            style={[styles.actionButton, styles.cancelButton]}
-            onPress={() => startCancel(item)}
-          >
-            <Text style={[styles.actionButtonText, styles.cancelButtonText]}>Hủy</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      
+      {canReschedule(item.status) && (
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => startReschedule(item)}
+        >
+          <Icon name="calendar-outline" size={16} color="#52c41a" />
+          <Text style={styles.actionButtonText}>Đổi lịch</Text>
+        </TouchableOpacity>
+      )}
+      
+      {canCancel(item.status) && (
+        <TouchableOpacity
+          style={[styles.actionButton, styles.cancelButton]}
+          onPress={() => startCancel(item)}
+        >
+          <Icon name="close-outline" size={16} color="#ff4d4f" />
+          <Text style={[styles.actionButtonText, styles.cancelButtonText]}>Hủy</Text>
+        </TouchableOpacity>
+      )}
     </View>
+    </TouchableOpacity>
   );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>      
-      {/* Header */}
-      {/* <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Lịch sử đặt lịch</Text>
-          <Text style={styles.headerSubtitle}>Quản lý lịch hẹn</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={handleSearch}
-          disabled={loading}
-        >
-          <Text style={styles.refreshButtonText}>Làm mới</Text>
-        </TouchableOpacity>
-      </View> */}
-
-      {/* Statistics */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.total}</Text>
-            <Text style={styles.statLabel}>Tổng số lịch</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, styles.confirmedValue]}>{stats.confirmed}</Text>
-            <Text style={styles.statLabel}>Đã xác nhận</Text>
-          </View>
-        </View>
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, styles.inProgressValue]}>{stats.inProgress}</Text>
-            <Text style={styles.statLabel}>Đang thực hiện</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, styles.completedValue]}>{stats.completed}</Text>
-            <Text style={styles.statLabel}>Hoàn thành</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Filters */}
+      {/* Collapsible Filters - Moved to top */}
       <View style={styles.filtersContainer}>
-        <Text style={styles.filtersTitle}>Bộ lọc</Text>
+        <TouchableOpacity 
+          style={styles.filtersHeader}
+          onPress={toggleFilters}
+        >
+          <View style={styles.filtersTitleContainer}>
+            <Icon name="filter-outline" size={20} color="#1890ff" />
+            <Text style={styles.filtersTitle}>Bộ lọc</Text>
+            <View style={styles.filterCount}>
+              <Text style={styles.filterCountText}>
+                {statusFilter !== 'all' ? '1' : '0'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.filtersHeaderRight}>
+            <TouchableOpacity 
+              style={styles.clearFiltersButton} 
+              onPress={() => { 
+                setStatusFilter('all'); 
+                setFromDate(null); 
+                setToDate(null); 
+                setSortBy(''); 
+                setSortOrder(''); 
+              }}
+            >
+              <Icon name="refresh-outline" size={16} color="#6b7280" />
+              <Text style={styles.clearFiltersText}>Xóa</Text>
+            </TouchableOpacity>
+            <Icon 
+              name={filtersExpanded ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              color="#6b7280" 
+            />
+          </View>
+        </TouchableOpacity>
         
-        {/* Status Filter */}
-        <View style={styles.filterRow}>
-          <Text style={styles.filterLabel}>Trạng thái:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.filterButtons}>
+        <Animated.View 
+          style={[
+            styles.filtersContent,
+            {
+              opacity: animatedHeight,
+              maxHeight: animatedHeight.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 200],
+              }),
+            }
+          ]}
+        >
+          {/* Status Filter */}
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Trạng thái</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterScrollContent}
+            >
               {[
-                { value: 'all', label: 'Tất cả' },
-                { value: 'pending_confirmation', label: 'Chờ xác nhận' },
-                { value: 'confirmed', label: 'Đã xác nhận' },
-                { value: 'in_progress', label: 'Đang thực hiện' },
-                { value: 'completed', label: 'Hoàn thành' },
-                { value: 'cancelled', label: 'Đã hủy' }
-              ].map(({ value, label }) => (
+                { value: 'all', label: 'Tất cả', icon: 'apps-outline' },
+                { value: 'pending_confirmation', label: 'Chờ xác nhận', icon: 'time-outline' },
+                { value: 'confirmed', label: 'Đã xác nhận', icon: 'checkmark-circle-outline' },
+                { value: 'in_progress', label: 'Đang thực hiện', icon: 'sync-outline' },
+                { value: 'completed', label: 'Hoàn thành', icon: 'checkmark-done-outline' },
+                { value: 'cancelled', label: 'Đã hủy', icon: 'close-circle-outline' }
+              ].map(({ value, label, icon }) => (
                 <TouchableOpacity
                   key={value}
                   style={[
-                    styles.filterButton,
-                    statusFilter === value && styles.activeFilterButton
+                    styles.filterChip,
+                    statusFilter === value && styles.activeFilterChip
                   ]}
                   onPress={() => setStatusFilter(value)}
                 >
+                  <Icon 
+                    name={icon as any} 
+                    size={16} 
+                    color={statusFilter === value ? '#ffffff' : '#6b7280'} 
+                  />
                   <Text style={[
-                    styles.filterButtonText,
-                    statusFilter === value && styles.activeFilterButtonText
+                    styles.filterChipText,
+                    statusFilter === value && styles.activeFilterChipText
                   ]}>
                     {label}
                   </Text>
                 </TouchableOpacity>
               ))}
-            </View>
-          </ScrollView>
-        </View>
+            </ScrollView>
+          </View>
+        </Animated.View>
+      </View>
 
-        <TouchableOpacity style={styles.clearFiltersButton} onPress={() => { 
-          setStatusFilter('all'); 
-          setFromDate(null); 
-          setToDate(null); 
-          setSortBy(''); 
-          setSortOrder(''); 
-        }}>
-          <Text style={styles.clearFiltersText}>Xóa bộ lọc</Text>
+      {/* Collapsible Statistics */}
+      <View style={styles.statsContainer}>
+        <TouchableOpacity 
+          style={styles.statsHeader}
+          onPress={toggleStats}
+        >
+          <View style={styles.statsTitleContainer}>
+            <Icon name="analytics-outline" size={20} color="#1890ff" />
+            <Text style={styles.statsTitle}>Tổng quan</Text>
+            <View style={styles.statsCount}>
+              <Text style={styles.statsCountText}>
+                {stats.total}
+              </Text>
+            </View>
+          </View>
+          <Icon 
+            name={statsExpanded ? "chevron-up" : "chevron-down"} 
+            size={20} 
+            color="#6b7280" 
+          />
         </TouchableOpacity>
+        
+        <Animated.View 
+          style={[
+            styles.statsContent,
+            {
+              opacity: animatedStatsHeight,
+              maxHeight: animatedStatsHeight.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 200],
+              }),
+            }
+          ]}
+        >
+          <View style={styles.statsGrid}>
+            <View style={[styles.statCard, styles.totalCard]}>
+              <View style={styles.statIconContainer}>
+                <Icon name="calendar-outline" size={24} color="#1890ff" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={styles.statValue}>{stats.total}</Text>
+                <Text style={styles.statLabel}>Tổng số lịch</Text>
+              </View>
+            </View>
+            
+            <View style={[styles.statCard, styles.confirmedCard]}>
+              <View style={styles.statIconContainer}>
+                <Icon name="checkmark-circle-outline" size={24} color="#3B82F6" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={[styles.statValue, styles.confirmedValue]}>{stats.confirmed}</Text>
+                <Text style={styles.statLabel}>Đã xác nhận</Text>
+              </View>
+            </View>
+            
+            <View style={[styles.statCard, styles.inProgressCard]}>
+              <View style={styles.statIconContainer}>
+                <Icon name="sync-outline" size={24} color="#F59E0B" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={[styles.statValue, styles.inProgressValue]}>{stats.inProgress}</Text>
+                <Text style={styles.statLabel}>Đang thực hiện</Text>
+              </View>
+            </View>
+            
+            <View style={[styles.statCard, styles.completedCard]}>
+              <View style={styles.statIconContainer}>
+                <Icon name="checkmark-done-outline" size={24} color="#10B981" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={[styles.statValue, styles.completedValue]}>{stats.completed}</Text>
+                <Text style={styles.statLabel}>Hoàn thành</Text>
+              </View>
+            </View>
+          </View>
+        </Animated.View>
       </View>
 
       {/* Error */}
@@ -601,7 +709,7 @@ const BookingHistoryScreen: React.FC = () => {
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           onChange={(_, d) => { setShowToPicker(false); if (d) setToDate(d); }}
         />
-      )}
+      )}  
 
       <Portal>
         {/* Detail Modal */}
@@ -674,7 +782,7 @@ const BookingHistoryScreen: React.FC = () => {
                 const formatVND = (v: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(v || 0));
                 return (
                   <Card>
-                    <Card.Title title="Thông tin kiểm tra & báo giá" left={(p) => <Icon {...p} name="pricetag-outline" />} />
+                    <Card.Title title="Thông tin kiểm tra & báo giá" />
                     <Card.Content>
                       <Text>Ghi chú kiểm tra: {iq?.inspectionNotes || '-'}</Text>
                       <Text>Hoàn thành kiểm tra: {iq?.inspectionCompletedAt ? new Date(iq?.inspectionCompletedAt).toLocaleString('vi-VN') : '-'}</Text>
@@ -690,7 +798,7 @@ const BookingHistoryScreen: React.FC = () => {
 
               {!!progressData?.milestones?.length && (
                 <Card>
-                  <Card.Title title="Các mốc tiến độ" left={(p) => <Icon {...p} name="flag-outline" />} />
+                  <Card.Title title="Các mốc tiến độ" />
                   <Card.Content>
                     {progressData.milestones.map((m: any) => (
                       <View key={m._id || m.name} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
@@ -705,12 +813,12 @@ const BookingHistoryScreen: React.FC = () => {
 
               {String(progressData?.currentStatus || '').toLowerCase() !== 'completed' && (
                 <Card>
-                  <Card.Title title="Phản hồi báo giá" left={(p) => <Icon {...p} name="chatbox-ellipses-outline" />} />
+                  <Card.Title title="Phản hồi báo giá" />
                   <Card.Content>
-                    <TextInput mode="outlined" label="Ghi chú (tùy chọn)" value={quoteNotes} onChangeText={setQuoteNotes} multiline />
+                    <TextInput label="Ghi chú (tùy chọn)" value={quoteNotes} onChangeText={setQuoteNotes} multiline />
                     <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                      <Button mode="contained" icon="checkmark" onPress={() => submitQuoteResponse('approved')} loading={progressLoading}>Chấp nhận</Button>
-                      <Button mode="outlined" icon="close" onPress={() => submitQuoteResponse('rejected')} loading={progressLoading}>Từ chối</Button>
+                      <Button icon="checkmark" onPress={() => submitQuoteResponse('approved')} loading={progressLoading}>Chấp nhận</Button>
+                      <Button icon="close" onPress={() => submitQuoteResponse('rejected')} loading={progressLoading}>Từ chối</Button>
                     </View>
                   </Card.Content>
                 </Card>
@@ -742,7 +850,7 @@ const BookingHistoryScreen: React.FC = () => {
               ) : (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   {slots.map((s) => (
-                    <Chip key={`${s.startTime}-${s.endTime}`} selected={slot === s.startTime} onPress={() => setSlot(s.startTime)} icon="time-outline">
+                    <Chip key={`${s.startTime}-${s.endTime}`} selected={slot === s.startTime} onPress={() => setSlot(s.startTime)}>
                       {`${formatTime12h(s.startTime)} - ${formatTime12h(s.endTime)}`}
                     </Chip>
                   ))}
@@ -751,10 +859,10 @@ const BookingHistoryScreen: React.FC = () => {
               )}
             </View>
           )}
-          {!!rescheduleErr && <HelperText type="error" visible>{rescheduleErr}</HelperText>}
+          {!!rescheduleErr && <HelperText type="error">{rescheduleErr}</HelperText>}
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12, gap: 8 }}>
             <Button onPress={() => setRescheduleOpen(false)}>Hủy</Button>
-            <Button mode="contained" icon="checkmark" onPress={onSubmitReschedule} loading={loading}>Xác nhận</Button>
+            <Button icon="checkmark" onPress={onSubmitReschedule} loading={loading}>Xác nhận</Button>
           </View>
         </Modal>
 
@@ -762,10 +870,10 @@ const BookingHistoryScreen: React.FC = () => {
         <Modal visible={cancelOpen} onDismiss={() => setCancelOpen(false)} contentContainerStyle={styles.modalBox}>
           <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Hủy lịch hẹn</Text>
           <Divider style={{ marginVertical: 12 }} />
-          <Card mode="contained" style={{ backgroundColor: '#FEF2F2' }}>
+          <Card style={{ backgroundColor: '#FEF2F2' }}>
             <Card.Content>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Icon name="warning-outline" size={20} color="#EF4444" />
+                <Icon name="warning" size={20} color="#EF4444" />
                 <View>
                   <Text style={{ color: '#991B1B', fontWeight: '700' }}>Cảnh báo</Text>
                   <Paragraph style={{ color: '#B91C1C' }}>Hành động này không thể hoàn tác. Lịch hẹn của bạn sẽ bị hủy.</Paragraph>
@@ -783,14 +891,14 @@ const BookingHistoryScreen: React.FC = () => {
           />
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12, gap: 8 }}>
             <Button onPress={() => setCancelOpen(false)}>Hủy</Button>
-            <Button mode="contained" buttonColor="#EF4444" icon="close" onPress={onSubmitCancel} loading={loading}>Xác nhận hủy</Button>
+            <Button icon="close" onPress={onSubmitCancel} loading={loading}>Xác nhận hủy</Button>
           </View>
         </Modal>
 
         {/* Enhanced Feedback Modal */}
         <Modal visible={feedbackOpen} onDismiss={() => setFeedbackOpen(false)} contentContainerStyle={styles.modalBox}>
           <View style={styles.modalHeader}>
-            <Icon name="star-outline" size={24} color="#F59E0B" />
+            <Icon name="star" size={24} color="#F59E0B" />
             <Text style={[styles.modalTitle, { fontSize: 20, fontWeight: 'bold' }]}>
               {feedbackViewOnly ? 'Đánh giá của bạn (Đã hoàn thành)' : 'Đánh giá dịch vụ'}
             </Text>
@@ -798,10 +906,10 @@ const BookingHistoryScreen: React.FC = () => {
           <Divider style={{ marginVertical: 16 }} />
           
           {!!feedbackFor && (
-            <Card mode="outlined" style={styles.bookingInfoCard}>
+            <Card style={styles.bookingInfoCard}>
               <Card.Content>
                 <View style={styles.bookingInfoHeader}>
-                  <Icon name="information-circle-outline" size={20} color="#1890ff" />
+                  <Icon name="information-circle" size={20} color="#1890ff" />
                   <Text style={[styles.bookingInfoTitle, { fontSize: 16, fontWeight: '600' }]}>Thông tin lịch hẹn</Text>
                 </View>
                 <Text style={[styles.bookingServiceName, { fontSize: 16, fontWeight: '600' }]}>
@@ -815,10 +923,10 @@ const BookingHistoryScreen: React.FC = () => {
           )}
 
           {feedbackViewOnly && (
-            <Card mode="contained" style={styles.completedCard}>
+            <Card style={styles.completedCard}>
               <Card.Content>
                 <View style={styles.completedHeader}>
-                  <Icon name="checkmark-circle-outline" size={20} color="#10B981" />
+                  <Icon name="checkmark-circle" size={20} color="#10B981" />
                   <Text style={[styles.completedTitle, { fontSize: 16, fontWeight: '600' }]}>Đánh giá đã hoàn thành</Text>
                 </View>
                 <Text style={[styles.completedText, { fontSize: 14, color: '#059669' }]}>
@@ -890,7 +998,7 @@ const BookingHistoryScreen: React.FC = () => {
               <Icon name="chatbubble-outline" size={16} color="#6B7280" /> Nhận xét của bạn
             </Text>
             {feedbackViewOnly ? (
-              <Card mode="contained" style={styles.commentDisplayCard}>
+              <Card style={styles.commentDisplayCard}>
                 <Card.Content>
                   <Text style={[styles.commentText, { fontSize: 14, color: '#374151' }]}>
                     {fbComment || 'Không có nhận xét'}
@@ -943,7 +1051,7 @@ const BookingHistoryScreen: React.FC = () => {
         </Modal>
       </Portal>
 
-      <Snackbar visible={!!snack} onDismiss={() => setSnack('')} duration={2500}>
+      <Snackbar visible={!!snack} onDismiss={() => setSnack('')}>
         {snack}
       </Snackbar>
     </View>
@@ -954,13 +1062,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    padding: 16,
+    padding: 12,
   },
   header: {
     backgroundColor: '#667eea',
     padding: 16,
     borderRadius: 8,
-    marginBottom: 16,
+    marginBottom: 2,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -989,159 +1097,320 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   statsContainer: {
-    marginBottom: 16,
-  },
-  statsRow: {
-    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderRadius: 6,
+    padding: 12,
     marginBottom: 8,
+    
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  statsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  statsTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  statsCount: {
+    backgroundColor: '#1890ff',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  statsCountText: {
+    fontSize: 12,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  statsContent: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    overflow: 'hidden',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,  
   },
   statCard: {
     flex: 1,
-    backgroundColor: 'white',
+    minWidth: '40%',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
     padding: 12,
-    marginHorizontal: 4,
-    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  totalCard: {
+    backgroundColor: '#f0f9ff',
+    borderColor: '#bae6fd',
+  },
+  confirmedCard: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
+  },
+  inProgressCard: {
+    backgroundColor: '#fffbeb',
+    borderColor: '#fed7aa',
+  },
+  completedCard: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#bbf7d0',
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
+  statContent: {
+    flex: 1,
+  },
   statValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#52c41a',
+    color: '#1f2937',
+    marginBottom: 2,
   },
   confirmedValue: {
     color: '#3B82F6',
   },
   inProgressValue: {
-    color: '#faad14',
+    color: '#F59E0B',
   },
   completedValue: {
-    color: '#52c41a',
+    color: '#10B981',
   },
   statLabel: {
     fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+    color: '#6b7280',
+    fontWeight: '500',
   },
 
   filtersContainer: {
     backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
+    borderRadius: 12,
+    padding: 6,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  filtersHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  filtersTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
   },
   filtersTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 12,
+    color: '#1f2937',
   },
-  filterRow: {
+  filterCount: {
+    backgroundColor: '#1890ff',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  filterCountText: {
+    fontSize: 12,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  filtersHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  clearFiltersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 4,
+  },
+  clearFiltersText: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  filtersContent: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    overflow: 'hidden',
+  },
+  filterSection: {
     marginBottom: 12,
   },
   filterLabel: {
     fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 8,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
   },
-  filterButtons: {
+  filterScrollContent: {
+    paddingRight: 16,
+  },
+  filterChip: {
     flexDirection: 'row',
-  },
-  filterButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 8,
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
-  },
-  activeFilterButton: {
-    backgroundColor: '#1890ff',
-  },
-  filterButtonText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  activeFilterButtonText: {
-    color: 'white',
-  },
-  clearFiltersButton: {
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 8,
-    borderRadius: 4,
     alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 6,
   },
-  clearFiltersText: {
-    fontSize: 14,
-    color: '#666',
+  activeFilterChip: {
+    backgroundColor: '#1890ff',
+    borderColor: '#1890ff',
+  },
+  filterChipText: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  activeFilterChipText: {
+    color: '#ffffff',
   },
 
   bookingCard: {
     backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    marginBottom: 16,
   },
-  orderInfo: {
+  headerLeft: {
     flex: 1,
   },
+  headerRight: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
   orderCode: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#1890ff',
     fontWeight: 'bold',
     marginBottom: 4,
   },
-  dateInfo: {
-    alignItems: 'flex-end',
-  },
   bookingDate: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#52c41a',
+    fontWeight: '600',
+    color: '#1f2937',
   },
-  bookingTime: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+  clickHint: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#f0f0f0',
-    marginVertical: 12,
+  cardContent: {
+    marginBottom: 16,
   },
-  serviceInfo: {
+  serviceSection: {
     marginBottom: 12,
   },
-  serviceItem: {
+  serviceRow: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  serviceInfo: {
+    flex: 1,
+  },
+  serviceName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
     marginBottom: 4,
   },
-  serviceLabel: {
-    fontSize: 12,
-    color: '#666',
-    width: 80,
+  serviceCenter: {
+    fontSize: 14,
+    color: '#6b7280',
   },
-  serviceText: {
-    fontSize: 12,
-    color: '#333',
+  timeSection: {
+    marginBottom: 12,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  timeInfo: {
     flex: 1,
+  },
+  timeText: {
+    fontSize: 14,
+    color: '#52c41a',
+    fontWeight: '500',
   },
   feedbackSection: {
     marginBottom: 12,
   },
   feedbackDisplay: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#BBF7D0',
   },
   feedbackContent: {
     alignItems: 'center',
@@ -1149,36 +1418,62 @@ const styles = StyleSheet.create({
   },
   feedbackLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#059669',
+    fontWeight: '500',
+  },
+  feedbackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    gap: 6,
+  },
+  feedbackButtonText: {
+    fontSize: 12,
+    color: '#D97706',
+    fontWeight: '500',
   },
   cardActions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 4,
-    backgroundColor: '#f0f0f0',
-    marginHorizontal: 4,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 6,
   },
   primaryButton: {
     backgroundColor: '#1890ff',
+    borderColor: '#1890ff',
   },
   actionButtonText: {
     fontSize: 12,
-    color: '#666',
+    color: '#64748b',
+    fontWeight: '500',
   },
   primaryButtonText: {
     color: 'white',
   },
   cancelButton: {
-    backgroundColor: '#ff4d4f',
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
   },
   cancelButtonText: {
-    color: 'white',
+    color: '#dc2626',
   },
   listContainer: {
     flex: 1,
@@ -1248,11 +1543,6 @@ const styles = StyleSheet.create({
   },
   bookingDateTime: {
     color: '#6B7280',
-  },
-  completedCard: {
-    marginBottom: 16,
-    backgroundColor: '#F0FDF4',
-    borderColor: '#BBF7D0',
   },
   completedHeader: {
     flexDirection: 'row',
