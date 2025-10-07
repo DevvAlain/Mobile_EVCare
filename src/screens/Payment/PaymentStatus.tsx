@@ -1,44 +1,35 @@
 import React from 'react';
-import { Tag, Progress, Tooltip } from 'antd';
-import { 
-  CheckCircle, 
-  Clock, 
-  XCircle, 
-  AlertCircle, 
-  RefreshCw,
-  CreditCard
-} from 'lucide-react';
+import { View, Text, StyleSheet } from 'react-native';
 import { PaymentStatus as PaymentStatusType } from '../../types/payment';
-import { getPaymentStatusColor, getPaymentStatusText } from '../../utils/paymentUtils';
 
 interface PaymentStatusProps {
   status: PaymentStatusType;
   showIcon?: boolean;
   showProgress?: boolean;
-  className?: string;
+  style?: any;
 }
 
 const PaymentStatus: React.FC<PaymentStatusProps> = ({
   status,
   showIcon = true,
   showProgress = false,
-  className = ''
+  style
 }) => {
   const getStatusIcon = (status: PaymentStatusType) => {
     switch (status) {
       case 'paid':
-        return <CheckCircle className="w-4 h-4" />;
+        return '✓';
       case 'pending':
-        return <Clock className="w-4 h-4" />;
+        return '⏰';
       case 'cancelled':
       case 'failed':
-        return <XCircle className="w-4 h-4" />;
+        return '✗';
       case 'expired':
-        return <AlertCircle className="w-4 h-4" />;
+        return '⚠️';
       case 'refunded':
-        return <RefreshCw className="w-4 h-4" />;
+        return '↻';
       default:
-        return <CreditCard className="w-4 h-4" />;
+        return '💳';
     }
   };
 
@@ -59,52 +50,146 @@ const PaymentStatus: React.FC<PaymentStatusProps> = ({
     }
   };
 
-  const getStatusDescription = (status: PaymentStatusType) => {
+  const getStatusText = (status: PaymentStatusType) => {
     switch (status) {
       case 'paid':
-        return 'Thanh toán đã hoàn thành thành công';
+        return 'Đã thanh toán';
       case 'pending':
-        return 'Đang chờ thanh toán từ khách hàng';
+        return 'Chờ thanh toán';
       case 'failed':
-        return 'Thanh toán thất bại do lỗi kỹ thuật';
+        return 'Thất bại';
       case 'cancelled':
-        return 'Thanh toán đã bị hủy bởi khách hàng';
+        return 'Đã hủy';
       case 'expired':
-        return 'Link thanh toán đã hết hạn';
+        return 'Hết hạn';
       case 'refunded':
-        return 'Đã hoàn tiền cho khách hàng';
+        return 'Đã hoàn tiền';
       default:
-        return 'Trạng thái không xác định';
+        return 'Không xác định';
     }
   };
 
-  const color = getPaymentStatusColor(status.toUpperCase());
-  const text = getPaymentStatusText(status.toUpperCase());
+  const getStatusColor = (status: PaymentStatusType) => {
+    switch (status) {
+      case 'paid':
+        return '#52c41a';
+      case 'pending':
+        return '#faad14';
+      case 'failed':
+      case 'cancelled':
+      case 'expired':
+        return '#ff4d4f';
+      case 'refunded':
+        return '#1890ff';
+      default:
+        return '#666';
+    }
+  };
+
+  const getBackgroundColor = (status: PaymentStatusType) => {
+    switch (status) {
+      case 'paid':
+        return '#f6ffed';
+      case 'pending':
+        return '#fffbe6';
+      case 'failed':
+      case 'cancelled':
+      case 'expired':
+        return '#fff2f0';
+      case 'refunded':
+        return '#e6f7ff';
+      default:
+        return '#f5f5f5';
+    }
+  };
+
+  const getBorderColor = (status: PaymentStatusType) => {
+    switch (status) {
+      case 'paid':
+        return '#b7eb8f';
+      case 'pending':
+        return '#ffe58f';
+      case 'failed':
+      case 'cancelled':
+      case 'expired':
+        return '#ffccc7';
+      case 'refunded':
+        return '#91d5ff';
+      default:
+        return '#d9d9d9';
+    }
+  };
+
+  const color = getStatusColor(status);
+  const backgroundColor = getBackgroundColor(status);
+  const borderColor = getBorderColor(status);
+  const text = getStatusText(status);
+  const icon = getStatusIcon(status);
+  const progress = getProgressPercent(status);
 
   return (
-    <div className={`payment-status ${className}`}>
-      <Tooltip title={getStatusDescription(status)}>
-        <Tag
-          color={color}
-          icon={showIcon ? getStatusIcon(status) : undefined}
-          className="flex items-center gap-1"
-        >
-          {text}
-        </Tag>
-      </Tooltip>
+    <View style={[styles.container, { backgroundColor, borderColor }, style]}>
+      <View style={styles.content}>
+        {showIcon && (
+          <Text style={[styles.icon, { color }]}>{icon}</Text>
+        )}
+        <Text style={[styles.text, { color }]}>{text}</Text>
+      </View>
       
       {showProgress && (
-        <div className="mt-2">
-          <Progress
-            percent={getProgressPercent(status)}
-            size="small"
-            status={status === 'failed' || status === 'cancelled' || status === 'expired' ? 'exception' : 'normal'}
-            showInfo={false}
-          />
-        </div>
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBar}>
+            <View 
+              style={[
+                styles.progressFill, 
+                { 
+                  width: `${progress}%`,
+                  backgroundColor: color
+                }
+              ]} 
+            />
+          </View>
+        </View>
       )}
-    </div>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  icon: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  text: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  progressContainer: {
+    marginTop: 4,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+});
 
 export default PaymentStatus;

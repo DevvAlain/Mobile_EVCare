@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,25 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
-  Dimensions
+  Dimensions,
+  Animated
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons as Icon } from '@expo/vector-icons';
+import {
+  Button,
+  Card,
+  Divider,
+  HelperText,
+  Modal,
+  Paragraph,
+  Portal,
+  ProgressBar,
+  Snackbar,
+  TextInput,
+  Chip,
+  useTheme,
+} from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../service/store';
 import { getMyPayments } from '../../service/slices/paymentSlice.ts/paymentSlice';
 import PaymentStatus from './PaymentStatus';
@@ -24,6 +41,8 @@ import dayjs from 'dayjs';
 const { width } = Dimensions.get('window');
 
 const PaymentHistory: React.FC = () => {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const { myPayments, pagination, loading } = useAppSelector((state: any) => state.payment);
 
@@ -35,6 +54,12 @@ const PaymentHistory: React.FC = () => {
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Collapsible sections
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [statsExpanded, setStatsExpanded] = useState(true);
+  const animatedHeight = useRef(new Animated.Value(0)).current;
+  const animatedStatsHeight = useRef(new Animated.Value(1)).current;
+
   // Payment modal state
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -44,7 +69,9 @@ const PaymentHistory: React.FC = () => {
   const [paymentDetail, setPaymentDetail] = useState<Payment | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  const fetchPayments = React.useCallback(() => {
+  const [snack, setSnack] = useState<string>('');
+
+  const fetchPayments = useCallback(() => {
     const params: Record<string, string | number> = {
       page: currentPage,
       limit: pageSize
@@ -66,6 +93,28 @@ const PaymentHistory: React.FC = () => {
 
     dispatch(getMyPayments(params));
   }, [currentPage, pageSize, statusFilter, sortBy, sortOrder, dateRange, dispatch]);
+
+  const toggleFilters = () => {
+    const newExpanded = !filtersExpanded;
+    setFiltersExpanded(newExpanded);
+    
+    Animated.timing(animatedHeight, {
+      toValue: newExpanded ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const toggleStats = () => {
+    const newExpanded = !statsExpanded;
+    setStatsExpanded(newExpanded);
+    
+    Animated.timing(animatedStatsHeight, {
+      toValue: newExpanded ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
 
   useEffect(() => {
     fetchPayments();
@@ -160,80 +209,94 @@ const PaymentHistory: React.FC = () => {
   };
 
   // Calculate statistics
-  const stats = {
-    totalPaid: myPayments.filter((p: Payment) => p.status === 'paid').length,
-    totalPending: myPayments.filter((p: Payment) => p.status === 'pending').length,
-    totalFailed: myPayments.filter((p: Payment) => ['failed', 'cancelled', 'expired'].includes(p.status)).length,
+  const stats = useMemo(() => ({
+    total: myPayments.length,
+    paid: myPayments.filter((p: Payment) => p.status === 'paid').length,
+    pending: myPayments.filter((p: Payment) => p.status === 'pending').length,
+    failed: myPayments.filter((p: Payment) => ['failed', 'cancelled', 'expired'].includes(p.status)).length,
     totalAmount: myPayments.filter((p: Payment) => p.status === 'paid').reduce((sum: number, p: Payment) => sum + p.paymentInfo.amount, 0)
-  };
+  }), [myPayments]);
 
-  // Mobile-friendly payment card component
+  // Modern payment card component
   const PaymentCard: React.FC<{ payment: Payment }> = ({ payment }) => {
     const appointment = typeof payment.appointment === 'object' ? payment.appointment : null;
     
     return (
-      <View style={styles.paymentCard}>
-        {/* Header with order code and status */}
+      <TouchableOpacity style={styles.paymentCard} onPress={() => handleViewDetails(payment._id)}>
+        {/* Card Header */}
         <View style={styles.cardHeader}>
-          <View style={styles.orderInfo}>
+          <View style={styles.headerLeft}>
             <Text style={styles.orderCode}>#{payment.paymentInfo.orderCode}</Text>
-            <PaymentStatus status={payment.status} />
-          </View>
-          <View style={styles.amountInfo}>
-            <Text style={styles.amount}>{formatCurrencyVND(payment.paymentInfo.amount)}</Text>
-            <Text style={styles.date}>
-              {dayjs(payment.createdAt).format('DD/MM/YYYY HH:mm')}
+            <Text style={styles.paymentDate}>
+              {dayjs(payment.createdAt).format('DD/MM/YYYY')}
             </Text>
+          </View>
+          <View style={styles.headerRight}>
+            <PaymentStatus status={payment.status} />
           </View>
         </View>
 
-        <View style={styles.divider} />
-
-        {/* Service info */}
-        {appointment && (
-          <View style={styles.serviceInfo}>
-            <View style={styles.serviceItem}>
-              <Text style={styles.serviceLabel}>Dịch vụ:</Text>
-              <Text style={styles.serviceText}>
-              {typeof appointment.serviceType === 'object'
-                ? appointment.serviceType?.name
-                : 'Không xác định'}
-              </Text>
-            </View>
-            <View style={styles.serviceItem}>
-              <Text style={styles.serviceLabel}>Trung tâm:</Text>
-              <Text style={styles.serviceText}>
-                {typeof appointment.serviceCenter === 'object'
-                  ? appointment.serviceCenter?.name
-                  : 'Không xác định'}
-              </Text>
-            </View>
-            {appointment.appointmentTime && (
-              <View style={styles.serviceItem}>
-                <Text style={styles.serviceLabel}>Thời gian hẹn:</Text>
-                <Text style={styles.serviceText}>
-                  {dayjs(appointment.appointmentTime.date).format('DD/MM/YYYY')} - {appointment.appointmentTime.startTime}
+        {/* Main Content */}
+        <View style={styles.cardContent}>
+          {/* Amount Info */}
+          <View style={styles.amountSection}>
+            <View style={styles.amountRow}>
+              <Icon name="card-outline" size={18} color="#1890ff" />
+              <View style={styles.amountInfo}>
+                <Text style={styles.amountText}>
+                  {formatCurrencyVND(payment.paymentInfo.amount)}
+                </Text>
+                <Text style={styles.paymentMethod}>
+                  {payment.paymentMethod.toUpperCase()}
                 </Text>
               </View>
-            )}
+            </View>
           </View>
-        )}
 
-        {/* Actions */}
+          {/* Service Info */}
+          {appointment && (
+            <View style={styles.serviceSection}>
+              <View style={styles.serviceRow}>
+                <Icon name="car-outline" size={18} color="#52c41a" />
+                <View style={styles.serviceInfo}>
+                  <Text style={styles.serviceName}>
+                    {typeof appointment.serviceType === 'object'
+                      ? appointment.serviceType?.name
+                      : 'Không xác định'}
+                  </Text>
+                  <Text style={styles.serviceCenter}>
+                    {typeof appointment.serviceCenter === 'object'
+                      ? appointment.serviceCenter?.name
+                      : 'Không xác định'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Time Info */}
+          {appointment?.appointmentTime && (
+            <View style={styles.timeSection}>
+              <View style={styles.timeRow}>
+                <Icon name="time-outline" size={18} color="#52c41a" />
+                <View style={styles.timeInfo}>
+                  <Text style={styles.timeText}>
+                    {dayjs(appointment.appointmentTime.date).format('DD/MM/YYYY')} - {appointment.appointmentTime.startTime}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Action Buttons */}
         <View style={styles.cardActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => handleViewDetails(payment._id)}
-            disabled={detailLoading}
-          >
-            <Text style={styles.actionButtonText}>Chi tiết</Text>
-          </TouchableOpacity>
-          
           {payment.status === 'pending' && payment.payosInfo && (
             <TouchableOpacity
               style={[styles.actionButton, styles.primaryButton]}
               onPress={() => handleContinuePayment(payment)}
             >
+              <Icon name="card-outline" size={16} color="#ffffff" />
               <Text style={[styles.actionButtonText, styles.primaryButtonText]}>Thanh toán</Text>
             </TouchableOpacity>
           )}
@@ -243,11 +306,12 @@ const PaymentHistory: React.FC = () => {
               style={styles.actionButton}
               onPress={() => handleDownloadReceipt(payment._id)}
             >
+              <Icon name="download-outline" size={16} color="#52c41a" />
               <Text style={styles.actionButtonText}>Hóa đơn</Text>
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -256,86 +320,169 @@ const PaymentHistory: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      {/* <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Lịch sử thanh toán</Text>
-          <Text style={styles.headerSubtitle}>Quản lý giao dịch</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.refreshButton}
-          onPress={fetchPayments}
-          disabled={loading}
-        >
-          <Text style={styles.refreshButtonText}>Làm mới</Text>
-        </TouchableOpacity>
-      </View> */}
-
-      {/* Statistics */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.totalPaid}</Text>
-            <Text style={styles.statLabel}>Đã thanh toán</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, styles.pendingValue]}>{stats.totalPending}</Text>
-            <Text style={styles.statLabel}>Chờ thanh toán</Text>
-          </View>
-        </View>
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, styles.failedValue]}>{stats.totalFailed}</Text>
-            <Text style={styles.statLabel}>Thất bại/Hủy</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statValue, styles.amountValue]}>
-              {formatCurrencyVND(stats.totalAmount)}
-            </Text>
-            <Text style={styles.statLabel}>Tổng tiền</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Filters */}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Collapsible Filters */}
       <View style={styles.filtersContainer}>
-        <Text style={styles.filtersTitle}>Bộ lọc</Text>
+        <TouchableOpacity 
+          style={styles.filtersHeader}
+          onPress={toggleFilters}
+        >
+          <View style={styles.filtersTitleContainer}>
+            <Icon name="filter-outline" size={20} color="#1890ff" />
+            <Text style={styles.filtersTitle}>Bộ lọc</Text>
+            <View style={styles.filterCount}>
+              <Text style={styles.filterCountText}>
+                {statusFilter !== 'all' ? '1' : '0'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.filtersHeaderRight}>
+            <TouchableOpacity 
+              style={styles.clearFiltersButton} 
+              onPress={clearFilters}
+            >
+              <Icon name="refresh-outline" size={16} color="#6b7280" />
+              <Text style={styles.clearFiltersText}>Xóa</Text>
+            </TouchableOpacity>
+            <Icon 
+              name={filtersExpanded ? "chevron-up" : "chevron-down"} 
+              size={20} 
+              color="#6b7280" 
+            />
+          </View>
+        </TouchableOpacity>
         
-        {/* Status Filter */}
-        <View style={styles.filterRow}>
-          <Text style={styles.filterLabel}>Trạng thái:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.filterButtons}>
-              {['all', 'pending', 'paid', 'failed', 'cancelled', 'expired', 'refunded'].map((status) => (
+        <Animated.View 
+          style={[
+            styles.filtersContent,
+            {
+              opacity: animatedHeight,
+              maxHeight: animatedHeight.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 200],
+              }),
+            }
+          ]}
+        >
+          {/* Status Filter */}
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Trạng thái</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterScrollContent}
+            >
+              {[
+                { value: 'all', label: 'Tất cả', icon: 'apps-outline' },
+                { value: 'pending', label: 'Chờ thanh toán', icon: 'time-outline' },
+                { value: 'paid', label: 'Đã thanh toán', icon: 'checkmark-circle-outline' },
+                { value: 'failed', label: 'Thất bại', icon: 'close-circle-outline' },
+                { value: 'cancelled', label: 'Đã hủy', icon: 'close-circle-outline' },
+                { value: 'expired', label: 'Hết hạn', icon: 'time-outline' },
+                { value: 'refunded', label: 'Đã hoàn tiền', icon: 'refresh-outline' }
+              ].map(({ value, label, icon }) => (
                 <TouchableOpacity
-                  key={status}
+                  key={value}
                   style={[
-                    styles.filterButton,
-                    statusFilter === status && styles.activeFilterButton
+                    styles.filterChip,
+                    statusFilter === value && styles.activeFilterChip
                   ]}
-                  onPress={() => handleStatusFilterChange(status as PaymentStatusType | 'all')}
+                  onPress={() => handleStatusFilterChange(value as PaymentStatusType | 'all')}
                 >
+                  <Icon 
+                    name={icon as any} 
+                    size={16} 
+                    color={statusFilter === value ? '#ffffff' : '#6b7280'} 
+                  />
                   <Text style={[
-                    styles.filterButtonText,
-                    statusFilter === status && styles.activeFilterButtonText
+                    styles.filterChipText,
+                    statusFilter === value && styles.activeFilterChipText
                   ]}>
-                    {status === 'all' ? 'Tất cả' : 
-                     status === 'pending' ? 'Chờ thanh toán' :
-                     status === 'paid' ? 'Đã thanh toán' :
-                     status === 'failed' ? 'Thất bại' :
-                     status === 'cancelled' ? 'Đã hủy' :
-                     status === 'expired' ? 'Hết hạn' : 'Đã hoàn tiền'}
+                    {label}
                   </Text>
                 </TouchableOpacity>
               ))}
-            </View>
-          </ScrollView>
-        </View>
+            </ScrollView>
+          </View>
+        </Animated.View>
+      </View>
 
-        <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
-          <Text style={styles.clearFiltersText}>Xóa bộ lọc</Text>
+      {/* Collapsible Statistics */}
+      <View style={styles.statsContainer}>
+        <TouchableOpacity 
+          style={styles.statsHeader}
+          onPress={toggleStats}
+        >
+          <View style={styles.statsTitleContainer}>
+            <Icon name="analytics-outline" size={20} color="#1890ff" />
+            <Text style={styles.statsTitle}>Tổng quan</Text>
+            <View style={styles.statsCount}>
+              <Text style={styles.statsCountText}>
+                {stats.total}
+              </Text>
+            </View>
+          </View>
+          <Icon 
+            name={statsExpanded ? "chevron-up" : "chevron-down"} 
+            size={20} 
+            color="#6b7280" 
+          />
         </TouchableOpacity>
+        
+        <Animated.View 
+          style={[
+            styles.statsContent,
+            {
+              opacity: animatedStatsHeight,
+              maxHeight: animatedStatsHeight.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 200],
+              }),
+            }
+          ]}
+        >
+          <View style={styles.statsGrid}>
+            <View style={[styles.statCard, styles.totalCard]}>
+              <View style={styles.statIconContainer}>
+                <Icon name="card-outline" size={24} color="#1890ff" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={styles.statValue}>{stats.total}</Text>
+                <Text style={styles.statLabel}>Tổng giao dịch</Text>
+              </View>
+            </View>
+            
+            <View style={[styles.statCard, styles.paidCard]}>
+              <View style={styles.statIconContainer}>
+                <Icon name="checkmark-circle-outline" size={24} color="#10B981" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={[styles.statValue, styles.paidValue]}>{stats.paid}</Text>
+                <Text style={styles.statLabel}>Đã thanh toán</Text>
+              </View>
+            </View>
+            
+            <View style={[styles.statCard, styles.pendingCard]}>
+              <View style={styles.statIconContainer}>
+                <Icon name="time-outline" size={24} color="#F59E0B" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={[styles.statValue, styles.pendingValue]}>{stats.pending}</Text>
+                <Text style={styles.statLabel}>Chờ thanh toán</Text>
+              </View>
+            </View>
+            
+            <View style={[styles.statCard, styles.failedCard]}>
+              <View style={styles.statIconContainer}>
+                <Icon name="close-circle-outline" size={24} color="#EF4444" />
+              </View>
+              <View style={styles.statContent}>
+                <Text style={[styles.statValue, styles.failedValue]}>{stats.failed}</Text>
+                <Text style={styles.statLabel}>Thất bại/Hủy</Text>
+              </View>
+            </View>
+          </View>
+        </Animated.View>
       </View>
 
       {/* Payment List */}
@@ -363,36 +510,6 @@ const PaymentHistory: React.FC = () => {
         )}
       </View>
 
-      {/* Pagination */}
-      {pagination && pagination.totalItems > 0 && (
-        <View style={styles.paginationContainer}>
-          <Text style={styles.paginationText}>
-            {pagination.currentPage} / {Math.ceil(pagination.totalItems / pagination.itemsPerPage)} trang
-          </Text>
-          <View style={styles.paginationButtons}>
-            <TouchableOpacity
-              style={[
-                styles.paginationButton,
-                pagination.currentPage <= 1 && styles.disabledButton
-              ]}
-              onPress={() => handlePageChange(pagination.currentPage - 1)}
-              disabled={pagination.currentPage <= 1}
-            >
-              <Text style={styles.paginationButtonText}>Trước</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.paginationButton,
-                pagination.currentPage >= Math.ceil(pagination.totalItems / pagination.itemsPerPage) && styles.disabledButton
-              ]}
-              onPress={() => handlePageChange(pagination.currentPage + 1)}
-              disabled={pagination.currentPage >= Math.ceil(pagination.totalItems / pagination.itemsPerPage)}
-            >
-              <Text style={styles.paginationButtonText}>Sau</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
 
       {/* Payment Modal */}
       {selectedPayment && (
@@ -468,123 +585,367 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    padding: 16,
+    padding: 12,
   },
-  header: {
-    backgroundColor: '#667eea',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
+  
+  // Filters
+  filtersContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 6,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  filtersHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 4,
   },
-  headerContent: {
-    flex: 1,
-  },
-  headerTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  headerSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-    marginTop: 4,
-  },
-  refreshButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
-  },
-  refreshButtonText: {
-    color: 'white',
-    fontSize: 12,
-  },
-  statsContainer: {
-    marginBottom: 16,
-  },
-  statsRow: {
+  filtersTitleContainer: {
     flexDirection: 'row',
-    marginBottom: 8,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: 'white',
-    padding: 12,
-    marginHorizontal: 4,
-    borderRadius: 8,
     alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#52c41a',
-  },
-  pendingValue: {
-    color: '#faad14',
-  },
-  failedValue: {
-    color: '#ff4d4f',
-  },
-  amountValue: {
-    color: '#52c41a',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  filtersContainer: {
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 16,
+    gap: 8,
+    flex: 1,
   },
   filtersTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 12,
+    color: '#1f2937',
   },
-  filterRow: {
+  filterCount: {
+    backgroundColor: '#1890ff',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 20,
+    alignItems: 'center',
+  },
+  filterCountText: {
+    fontSize: 12,
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  clearFiltersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 4,
+  },
+  clearFiltersText: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  filtersHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  filtersContent: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    overflow: 'hidden',
+  },
+  filterSection: {
     marginBottom: 12,
   },
   filterLabel: {
     fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 8,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
   },
-  filterButtons: {
+  filterScrollContent: {
+    paddingRight: 16,
+  },
+  filterChip: {
     flexDirection: 'row',
-  },
-  filterButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 8,
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
-  },
-  activeFilterButton: {
-    backgroundColor: '#1890ff',
-  },
-  filterButtonText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  activeFilterButtonText: {
-    color: 'white',
-  },
-  clearFiltersButton: {
-    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
     paddingVertical: 8,
-    borderRadius: 4,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 6,
+  },
+  activeFilterChip: {
+    backgroundColor: '#1890ff',
+    borderColor: '#1890ff',
+  },
+  filterChipText: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  activeFilterChipText: {
+    color: '#ffffff',
+  },
+
+  // Statistics
+  statsContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 6,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  statsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  statsTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  statsCount: {
+    backgroundColor: '#1890ff',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 20,
     alignItems: 'center',
   },
-  clearFiltersText: {
-    fontSize: 14,
-    color: '#666',
+  statsCountText: {
+    fontSize: 12,
+    color: 'white',
+    fontWeight: 'bold',
   },
+  statsContent: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    overflow: 'hidden',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    minWidth: '40%',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  totalCard: {
+    backgroundColor: '#f0f9ff',
+    borderColor: '#bae6fd',
+  },
+  paidCard: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#bbf7d0',
+  },
+  pendingCard: {
+    backgroundColor: '#fffbeb',
+    borderColor: '#fed7aa',
+  },
+  failedCard: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statContent: {
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
+  paidValue: {
+    color: '#10B981',
+  },
+  pendingValue: {
+    color: '#F59E0B',
+  },
+  failedValue: {
+    color: '#EF4444',
+  },
+  amountValue: {
+    color: '#10B981',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+
+  // Payment Cards
+  paymentCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  orderCode: {
+    fontSize: 14,
+    color: '#1890ff',
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  paymentDate: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  cardContent: {
+    marginBottom: 16,
+  },
+  amountSection: {
+    marginBottom: 12,
+  },
+  amountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  amountInfo: {
+    flex: 1,
+  },
+  amountText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#10B981',
+    marginBottom: 4,
+  },
+  paymentMethod: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  serviceSection: {
+    marginBottom: 12,
+  },
+  serviceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  serviceInfo: {
+    flex: 1,
+  },
+  serviceName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  serviceCenter: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  timeSection: {
+    marginBottom: 12,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  timeInfo: {
+    flex: 1,
+  },
+  timeText: {
+    fontSize: 14,
+    color: '#52c41a',
+    fontWeight: '500',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 6,
+  },
+  primaryButton: {
+    backgroundColor: '#1890ff',
+    borderColor: '#1890ff',
+  },
+  actionButtonText: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  primaryButtonText: {
+    color: 'white',
+  },
+
+  // List
   listContainer: {
     flex: 1,
   },
@@ -612,119 +973,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
-  paymentCard: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  orderInfo: {
-    flex: 1,
-  },
-  orderCode: {
-    fontSize: 12,
-    color: '#1890ff',
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  amountInfo: {
-    alignItems: 'flex-end',
-  },
-  amount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#52c41a',
-  },
-  date: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#f0f0f0',
-    marginVertical: 12,
-  },
-  serviceInfo: {
-    marginBottom: 12,
-  },
-  serviceItem: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  serviceLabel: {
-    fontSize: 12,
-    color: '#666',
-    width: 80,
-  },
-  serviceText: {
-    fontSize: 12,
-    color: '#333',
-    flex: 1,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 4,
-    backgroundColor: '#f0f0f0',
-    marginHorizontal: 4,
-    alignItems: 'center',
-  },
-  primaryButton: {
-    backgroundColor: '#1890ff',
-  },
-  actionButtonText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  primaryButtonText: {
-    color: 'white',
-  },
-  paginationContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  paginationText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  paginationButtons: {
-    flexDirection: 'row',
-  },
-  paginationButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 4,
-    backgroundColor: '#f0f0f0',
-    marginLeft: 8,
-  },
-  disabledButton: {
-    backgroundColor: '#f5f5f5',
-  },
-  paginationButtonText: {
-    fontSize: 14,
-    color: '#666',
-  },
+
+
+  // Modal
   modalOverlay: {
     position: 'absolute',
     top: 0,
