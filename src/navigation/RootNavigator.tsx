@@ -13,6 +13,7 @@ import { RegisterScreen } from "../screens/RegisterScreen";
 import { ForgotPasswordScreen } from "../screens/ForgotPasswordScreen";
 
 import BookingHistoryScreen from "../screens/BookingHistorySreen";
+import PaymentHistoryScreen from "../screens/Payment/PaymentHistorySreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -80,7 +81,7 @@ const RootNavigator = () => {
             />
             <Stack.Screen
               name="PaymentHistory"
-              component={HomeScreen}
+              component={PaymentHistoryScreen}
               options={{ headerTitle: "Lịch sử thanh toán" }}
             />
 

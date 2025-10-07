@@ -7,6 +7,7 @@ import authReducer from "../slices/authSlice";
 import appReducer from "../slices/appSlice";
 import userReducer from "../slices/userSlice";
 import bookingReducer from "../slices/bookingSlice";
+import paymentReducer from "../slices/paymentSlice.ts/paymentSlice";
 
 const persistConfig = {
   key: "root",
@@ -18,7 +19,8 @@ const rootReducer = combineReducers({
   auth: authReducer,
   app: appReducer,
   user: userReducer,
-  booking: bookingReducer, // Added booking slice
+  booking: bookingReducer,
+  payment: paymentReducer, // Added payment slice
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

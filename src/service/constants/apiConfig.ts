@@ -106,3 +106,19 @@ export const GET_CUSTOMER_FEEDBACK_ENDPOINT = (appointmentId: string) =>
 // Payment endpoints
 export const PAYMENTS_ENDPOINT = "/payments";
 export const PAYMENT_HISTORY_ENDPOINT = "/payments/history";
+
+export const PAYMENT_CREATE_ENDPOINT = (appointmentId: string) =>
+  `${prodDefault}/api/payment/booking/${appointmentId}`;
+export const PAYMENT_STATUS_ENDPOINT = (paymentId: string) =>
+  `${prodDefault}/api/payment/${paymentId}/status`;
+export const PAYMENT_SYNC_ENDPOINT = (orderCode: string) =>
+  `${prodDefault}/api/payment/sync/${orderCode}`;
+export const PAYMENT_CANCEL_ENDPOINT = (paymentId: string) =>
+  `${prodDefault}/api/payment/${paymentId}/cancel`;
+export const MY_PAYMENTS_ENDPOINT = `${prodDefault}/api/payment/my-payments`;
+
+export const PAYOS_PAYMENT_INFO_ENDPOINT = (orderCode: string) =>
+  `${prodDefault}/api/payment/${orderCode}`;
+export const PAYOS_CANCEL_ENDPOINT = (orderCode: string) =>
+  `${prodDefault}/api/payment/${orderCode}/cancel`;
+
