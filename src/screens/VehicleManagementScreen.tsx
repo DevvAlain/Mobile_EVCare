@@ -10,6 +10,7 @@ import {
     ScrollView,
     ActivityIndicator,
     Alert,
+    Keyboard,
 } from 'react-native';
 import { useAppDispatch, useAppSelector, RootState } from '../service/store';
 import { fetchVehicles as fetchBookingVehicles, createVehicle as createBookingVehicle } from '../service/slices/bookingSlice';
@@ -179,8 +180,12 @@ const VehicleManagementScreen = () => {
 
         const errors = validateForm(true);
         setFieldErrors(errors);
-        if (Object.keys(errors).length > 0) return;
+        if (Object.keys(errors).length > 0) {
+            setFormError('Vui lòng điền đầy đủ thông tin.');
+            return;
+        }
 
+        setFormError(null);
         setEditSubmitting(true);
         try {
             const payload = {
@@ -258,8 +263,12 @@ const VehicleManagementScreen = () => {
                             error && styles.inputError,
                             !editable && styles.inputDisabled
                         ]}
-                        onPress={onSelectPress}
-                        disabled={!isSelect || !editable}
+                        onPress={() => {
+                            console.log('Select pressed - brand:', form.vehicleInfo.brand);
+                            setShowBrandDropdown(true); // Ensure dropdown visibility is toggled correctly
+                        }}
+                        disabled={!editable}
+                        activeOpacity={0.6}
                     >
                         <TextInput
                             style={[
@@ -270,6 +279,7 @@ const VehicleManagementScreen = () => {
                             placeholder={placeholder}
                             editable={false}
                             placeholderTextColor="#9CA3AF"
+                            pointerEvents="none"
                         />
                         {iconName && <Icon name={iconName} size={20} color="#6B7280" style={styles.inputIcon} />}
                         <Icon name="arrow-drop-down" size={24} color="#6B7280" style={styles.selectIcon} />
@@ -298,6 +308,8 @@ const VehicleManagementScreen = () => {
                             keyboardType={keyboardType}
                             editable={editable}
                             placeholderTextColor="#9CA3AF"
+                            returnKeyType="done"
+                            blurOnSubmit={true}
                         />
                         {showIncrementDecrement && (
                             <TouchableOpacity onPress={onIncrement} style={styles.incrementDecrementButton}>
@@ -388,14 +400,6 @@ const VehicleManagementScreen = () => {
 
             <View style={styles.vehicleActions}>
                 <TouchableOpacity
-                    style={[styles.actionButton, styles.viewButton]}
-                    onPress={() => openView(item)}
-                >
-                    <Icon name="visibility" size={18} color="#3B82F6" />
-                    <Text style={[styles.actionButtonText, styles.viewButtonText]}>Chi tiết</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
                     style={[styles.actionButton, styles.editButton]}
                     onPress={() => openEdit(item)}
                     disabled={deletingId === item._id || loading}
@@ -421,6 +425,10 @@ const VehicleManagementScreen = () => {
             </View>
         </View>
     );
+
+    const dismissKeyboard = () => {
+        Keyboard.dismiss();
+    };
 
     return (
         <View style={styles.container}>
@@ -465,15 +473,15 @@ const VehicleManagementScreen = () => {
                     refreshing={refreshing}
                     onRefresh={async () => {
                         setRefreshing(true);
-                        await dispatch(fetchVehicleService());
+                        await dispatch(fetchBookingVehicles());
                         setRefreshing(false);
                     }}
                 />
             )}
 
             {/* Add Vehicle Modal */}
-            <Modal visible={addOpen} animationType="slide" presentationStyle="pageSheet">
-                <View style={styles.modalContainer}>
+            <Modal visible={addOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setAddOpen(false)}>
+                <View style={styles.modalContainer} onStartShouldSetResponder={() => true} onResponderRelease={dismissKeyboard}>
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>Thêm xe mới</Text>
                         <TouchableOpacity onPress={() => setAddOpen(false)} style={styles.closeButton}>
@@ -491,11 +499,11 @@ const VehicleManagementScreen = () => {
                         <FormField
                             label="Hãng xe *"
                             value={form.vehicleInfo.brand}
-                            onChange={() => {}}
+                            onChange={() => { }}
                             placeholder="Chọn hãng xe"
                             error={fieldErrors.brand}
                             iconName="directions-car"
-                            isSelect
+                            isSelect={true}
                             onSelectPress={() => setShowBrandDropdown(true)}
                             editable={true}
                         />
@@ -530,14 +538,17 @@ const VehicleManagementScreen = () => {
                         <FormField
                             label="Năm sản xuất *"
                             value={String(form.vehicleInfo.year)}
-                            onChange={(t: string) => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (t === '' ? '' : Number(t)) as any } }))}
+                            onChange={(t: string) => {
+                                const numValue = t === '' ? new Date().getFullYear() : parseInt(t) || new Date().getFullYear();
+                                setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: numValue } }));
+                            }}
                             placeholder="Nhập năm sản xuất"
                             keyboardType="numeric"
                             error={fieldErrors.year}
                             iconName="event"
                             showIncrementDecrement
-                            onIncrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (typeof p.vehicleInfo.year === 'number' ? p.vehicleInfo.year : Number(p.vehicleInfo.year) || new Date().getFullYear()) + 1 } }))}
-                            onDecrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (typeof p.vehicleInfo.year === 'number' ? p.vehicleInfo.year : Number(p.vehicleInfo.year) || new Date().getFullYear()) - 1 } }))}
+                            onIncrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (p.vehicleInfo.year) + 1 } }))}
+                            onDecrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (p.vehicleInfo.year) - 1 } }))}
                         />
 
                         <FormField
@@ -617,7 +628,7 @@ const VehicleManagementScreen = () => {
             </Modal>
 
             {/* View Details Modal */}
-            <Modal visible={viewOpen} animationType="slide" presentationStyle="pageSheet">
+            <Modal visible={viewOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setViewOpen(false)}>
                 <View style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
                         <View style={styles.modalTitleRow}>
@@ -650,7 +661,7 @@ const VehicleManagementScreen = () => {
             </Modal>
 
             {/* Edit Modal */}
-            <Modal visible={editOpen} animationType="slide" presentationStyle="pageSheet">
+            <Modal visible={editOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setEditOpen(false)}>
                 <View style={styles.modalContainer}>
                     <View style={styles.modalHeader}>
                         <View style={styles.modalTitleRow}>
@@ -695,14 +706,17 @@ const VehicleManagementScreen = () => {
                         <FormField
                             label="Năm sản xuất *"
                             value={String(form.vehicleInfo.year)}
-                            onChange={(t: string) => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (t as any) } }))}
+                            onChange={(t: string) => {
+                                const numValue = t === '' ? new Date().getFullYear() : parseInt(t) || new Date().getFullYear();
+                                setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: numValue } }));
+                            }}
                             placeholder="Nhập năm sản xuất"
                             keyboardType="numeric"
                             error={fieldErrors.year}
                             iconName="event"
                             showIncrementDecrement
-                            onIncrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (typeof p.vehicleInfo.year === 'number' ? p.vehicleInfo.year : Number(p.vehicleInfo.year) || new Date().getFullYear()) + 1 } }))}
-                            onDecrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (typeof p.vehicleInfo.year === 'number' ? p.vehicleInfo.year : Number(p.vehicleInfo.year) || new Date().getFullYear()) - 1 } }))}
+                            onIncrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: Math.min(new Date().getFullYear() + 1, p.vehicleInfo.year + 1) } }))}
+                            onDecrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: Math.max(1970, p.vehicleInfo.year - 1) } }))}
                         />
                     </ScrollView>
 
@@ -954,16 +968,17 @@ const styles = StyleSheet.create({
     vehicleActions: {
         flexDirection: 'row',
         gap: 8,
+        justifyContent: 'space-between',
     },
     actionButton: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 10,
-        paddingHorizontal: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
         borderRadius: 10,
-        gap: 6,
+        gap: 8,
     },
     viewButton: {
         backgroundColor: '#EFF6FF',
@@ -1131,11 +1146,13 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         justifyContent: 'center',
         padding: 20,
+        zIndex: 9999,
     },
     dropdownContainer: {
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
         maxHeight: '80%',
+        zIndex: 10000,
     },
     dropdownHeader: {
         flexDirection: 'row',
