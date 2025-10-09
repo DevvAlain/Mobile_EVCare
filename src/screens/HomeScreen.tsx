@@ -15,7 +15,6 @@ import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import Sidebar from '../components/Sidebar';
 import SidebarOverlay from '../components/SidebarOverlay';
-import { RootStackParamList } from '../types';
 import { RootState } from '../service/store';
 import { AppDispatch } from '../service/store';
 
@@ -139,243 +138,228 @@ const HomeScreen = () => {
   return (
     <>
       <Animated.ScrollView
-      style={[styles.container, { opacity: fadeAnim }]}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={['#1a40b8']}
-          tintColor="#1a40b8"
-        />
-      }
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
-    >
-      {/* Header Section */}
-      <Animated.View
-        style={[
-          styles.header,
-          {
-            transform: [{ translateY: slideAnim }],
-            opacity: fadeAnim
-          }
-        ]}
+        style={[styles.container, { opacity: fadeAnim }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#1a40b8']}
+            tintColor="#1a40b8"
+          />
+        }
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.headerContent}>
-          <View style={styles.greetingContainer}>
-            <Text style={styles.greeting}>
-              {isAuthenticated ? 'Xin chào,' : 'Chào mừng đến với'}
-            </Text>
-            <Text style={styles.userName}>
-              {isAuthenticated ? (user?.fullName || 'Khách hàng') : 'EV Care'}
-            </Text>
-          </View>
-
-          {!isAuthenticated ? (
-            <View style={styles.authButtons}>
-              <TouchableOpacity
-                style={styles.loginButton}
-                onPress={() => navigation.navigate('Auth', { screen: 'Login' } as any)}
-              >
-                <Text style={styles.loginButtonText}>Đăng nhập</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.registerButton}
-                onPress={() => navigation.navigate('Auth', { screen: 'Register' } as any)}
-              >
-                <Text style={styles.registerButtonText}>Đăng ký</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
+        {/* Header Section */}
+        <Animated.View
+          style={[
+            styles.header,
+            {
+              transform: [{ translateY: slideAnim }],
+              opacity: fadeAnim
+            }
+          ]}
+        >
+          <View style={styles.headerContent}>
+            {/* Hamburger menu bên trái */}
             <TouchableOpacity
-              style={styles.profileButton}
+              style={styles.menuButton}
               onPress={() => setSidebarOpen(true)}
             >
-              <View style={styles.profileIcon}>
-                {user?.avatar ? (
-                  <Image source={{ uri: user.avatar }} style={styles.profileIconImage} />
-                ) : (
-                  <Text style={styles.profileIconText}>
-                    {user?.fullName
-                      ? user.fullName
-                          .split(' ')
-                          .map((n) => n[0])
-                          .slice(0, 2)
-                          .join('')
-                      : '👤'}
-                  </Text>
-                )}
-              </View>
+              <Text style={styles.menuIcon}>≡</Text>
             </TouchableOpacity>
-          )}
-        </View>
-      </Animated.View>
 
-      {/* Hero Section */}
-      <Animated.View
-        style={[
-          styles.heroSection,
-          {
-            transform: [{ scale: scaleAnim }],
-            opacity: fadeAnim
-          }
-        ]}
-      >
-        <View style={styles.heroBackground}>
-          <View style={styles.heroContent}>
-            <Text style={styles.heroTitle}>
-              EV Service Center{'\n'}Maintenance{'\n'}Management System
-            </Text>
-            <Text style={styles.heroSubtitle}>
-              Complete solution for EV service centers: customer tracking, maintenance scheduling, inventory management
+            {/* Title ở giữa */}
+            <View style={styles.greetingContainer}>
+              <Text style={styles.greeting}>Chào mừng</Text>
+              <Text style={styles.userName}>EV Care</Text>
+            </View>
+
+            {/* Avatar bên phải - điều hướng đến profile */}
+            {isAuthenticated && (
+              <TouchableOpacity
+                style={styles.profileButton}
+                onPress={() => navigation.navigate('Profile')}
+              >
+                <View style={styles.profileIcon}>
+                  {user?.avatar ? (
+                    <Image source={{ uri: user.avatar }} style={styles.profileIconImage} />
+                  ) : (
+                    <Text style={styles.profileIconText}>
+                      {user?.fullName?.charAt(0) || '👤'}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
+        </Animated.View>
+
+        {/* Hero Section */}
+        <Animated.View
+          style={[
+            styles.heroSection,
+            {
+              transform: [{ scale: scaleAnim }],
+              opacity: fadeAnim
+            }
+          ]}
+        >
+          <View style={styles.heroBackground}>
+            <View style={styles.heroContent}>
+              <Text style={styles.heroTitle}>
+                EV Service Center{'\n'}Maintenance{'\n'}Management System
+              </Text>
+              <Text style={styles.heroSubtitle}>
+                Complete solution for EV service centers: customer tracking, maintenance scheduling, inventory management
+              </Text>
+              <TouchableOpacity
+                style={styles.ctaButton}
+                onPress={() => navigation.navigate('Booking')}
+              >
+                <Text style={styles.ctaButtonText}>Đặt lịch bảo dưỡng</Text>
+                <Text style={styles.ctaArrow}>→</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* Quick Actions Grid */}
+        <View style={styles.quickActionsSection}>
+          <Text style={styles.sectionTitle}>Thao tác nhanh</Text>
+          <View style={styles.actionGrid}>
+            {quickActions.map((action, index) => (
+              <AnimatedTouchable
+                key={action.id}
+                style={[
+                  styles.actionCard,
+                  {
+                    transform: [{
+                      translateY: slideAnim.interpolate({
+                        inputRange: [0, 50],
+                        outputRange: [0, -10 * (index + 1)],
+                      })
+                    }]
+                  }
+                ]}
+                onPress={action.onPress}
+              >
+                <View style={[styles.actionIconContainer, { backgroundColor: action.color }]}>
+                  <Text style={styles.actionIcon}>{action.icon}</Text>
+                </View>
+                <Text style={styles.actionTitle}>{action.title}</Text>
+              </AnimatedTouchable>
+            ))}
+          </View>
+        </View>
+
+        {/* Features Section */}
+        <View style={styles.featuresSection}>
+          <Text style={styles.sectionTitle}>Giải pháp toàn diện</Text>
+          <View style={styles.featuresGrid}>
+            {features.map((feature, index) => (
+              <AnimatedTouchable
+                key={feature.id}
+                style={[
+                  styles.featureCard,
+                  {
+                    transform: [{
+                      translateX: slideAnim.interpolate({
+                        inputRange: [0, 50],
+                        outputRange: [0, -20 * (index % 2 === 0 ? 1 : -1)],
+                      })
+                    }]
+                  }
+                ]}
+              >
+                <View style={styles.featureHeader}>
+                  <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
+                    <Text style={styles.featureIcon}>{feature.icon}</Text>
+                  </View>
+                  <Text style={styles.arrow}>›</Text>
+                </View>
+                <Text style={styles.featureTitle}>{feature.title}</Text>
+                <Text style={styles.featureDescription}>{feature.description}</Text>
+              </AnimatedTouchable>
+            ))}
+          </View>
+        </View>
+
+        {/* Service Centers CTA */}
+        <Animated.View
+          style={[
+            styles.serviceCentersSection,
+            {
+              transform: [{ scale: scaleAnim }],
+              opacity: fadeAnim
+            }
+          ]}
+        >
+          <View style={styles.serviceCentersContent}>
+            <View style={styles.serviceIcon}>
+              <Text style={styles.serviceIconText}>🏢</Text>
+            </View>
+            <Text style={styles.serviceCentersTitle}>Trung tâm dịch vụ gần bạn</Text>
+            <Text style={styles.serviceCentersSubtitle}>
+              Khám phá các trung tâm dịch vụ EV gần vị trí của bạn với công nghệ tiên tiến
             </Text>
             <TouchableOpacity
-              style={styles.ctaButton}
-              onPress={() => navigation.navigate('Booking')}
+              style={styles.serviceCentersButton}
+              onPress={() => navigation.navigate('ServiceCenters')}
             >
-              <Text style={styles.ctaButtonText}>Đặt lịch bảo dưỡng</Text>
-              <Text style={styles.ctaArrow}>→</Text>
+              <Text style={styles.serviceCentersButtonText}>Xem tất cả trung tâm</Text>
+              <Text style={styles.serviceCentersArrow}>→</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </Animated.View>
+        </Animated.View>
 
-      {/* Quick Actions Grid */}
-      <View style={styles.quickActionsSection}>
-        <Text style={styles.sectionTitle}>Thao tác nhanh</Text>
-        <View style={styles.actionGrid}>
-          {quickActions.map((action, index) => (
-            <AnimatedTouchable
-              key={action.id}
-              style={[
-                styles.actionCard,
-                {
-                  transform: [{
-                    translateY: slideAnim.interpolate({
-                      inputRange: [0, 50],
-                      outputRange: [0, -10 * (index + 1)],
-                    })
-                  }]
-                }
-              ]}
-              onPress={action.onPress}
-            >
-              <View style={[styles.actionIconContainer, { backgroundColor: action.color }]}>
-                <Text style={styles.actionIcon}>{action.icon}</Text>
-              </View>
-              <Text style={styles.actionTitle}>{action.title}</Text>
-            </AnimatedTouchable>
-          ))}
-        </View>
-      </View>
-
-      {/* Features Section */}
-      <View style={styles.featuresSection}>
-        <Text style={styles.sectionTitle}>Giải pháp toàn diện</Text>
-        <View style={styles.featuresGrid}>
-          {features.map((feature, index) => (
-            <AnimatedTouchable
-              key={feature.id}
-              style={[
-                styles.featureCard,
-                {
-                  transform: [{
-                    translateX: slideAnim.interpolate({
-                      inputRange: [0, 50],
-                      outputRange: [0, -20 * (index % 2 === 0 ? 1 : -1)],
-                    })
-                  }]
-                }
-              ]}
-            >
-              <View style={styles.featureHeader}>
-                <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
-                  <Text style={styles.featureIcon}>{feature.icon}</Text>
-                </View>
-                <Text style={styles.arrow}>›</Text>
-              </View>
-              <Text style={styles.featureTitle}>{feature.title}</Text>
-              <Text style={styles.featureDescription}>{feature.description}</Text>
-            </AnimatedTouchable>
-          ))}
-        </View>
-      </View>
-
-      {/* Service Centers CTA */}
-      <Animated.View
-        style={[
-          styles.serviceCentersSection,
-          {
-            transform: [{ scale: scaleAnim }],
-            opacity: fadeAnim
-          }
-        ]}
-      >
-        <View style={styles.serviceCentersContent}>
-          <View style={styles.serviceIcon}>
-            <Text style={styles.serviceIconText}>🏢</Text>
+        {/* Stats Section */}
+        <Animated.View
+          style={[
+            styles.statsSection,
+            {
+              transform: [{ translateY: slideAnim }],
+              opacity: fadeAnim
+            }
+          ]}
+        >
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>500+</Text>
+            <Text style={styles.statLabel}>Khách hàng hài lòng</Text>
           </View>
-          <Text style={styles.serviceCentersTitle}>Trung tâm dịch vụ gần bạn</Text>
-          <Text style={styles.serviceCentersSubtitle}>
-            Khám phá các trung tâm dịch vụ EV gần vị trí của bạn với công nghệ tiên tiến
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>50+</Text>
+            <Text style={styles.statLabel}>Trung tâm dịch vụ</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>24/7</Text>
+            <Text style={styles.statLabel}>Hỗ trợ khách hàng</Text>
+          </View>
+        </Animated.View>
+
+        {/* Final CTA */}
+        <Animated.View
+          style={[
+            styles.finalCTASection,
+            {
+              transform: [{ scale: scaleAnim }],
+              opacity: fadeAnim
+            }
+          ]}
+        >
+          <Text style={styles.finalCTATitle}>
+            Sẵn sàng trải nghiệm{'\n'}quản lý thông minh?
           </Text>
-          <TouchableOpacity
-            style={styles.serviceCentersButton}
-            onPress={() => navigation.navigate('ServiceCenters')}
-          >
-            <Text style={styles.serviceCentersButtonText}>Xem tất cả trung tâm</Text>
-            <Text style={styles.serviceCentersArrow}>→</Text>
+          <Text style={styles.finalCTASubtitle}>
+            Trải nghiệm nền tảng toàn diện của EV CARE có thể tối ưu hóa hoạt động dịch vụ
+          </Text>
+          <TouchableOpacity style={styles.finalCTAButton}>
+            <Text style={styles.finalCTAButtonText}>Đặt lịch hẹn ngay</Text>
+            <Text style={styles.finalCTAArrow}>→</Text>
           </TouchableOpacity>
-        </View>
-      </Animated.View>
-
-      {/* Stats Section */}
-      <Animated.View
-        style={[
-          styles.statsSection,
-          {
-            transform: [{ translateY: slideAnim }],
-            opacity: fadeAnim
-          }
-        ]}
-      >
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>500+</Text>
-          <Text style={styles.statLabel}>Khách hàng hài lòng</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>50+</Text>
-          <Text style={styles.statLabel}>Trung tâm dịch vụ</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>24/7</Text>
-          <Text style={styles.statLabel}>Hỗ trợ khách hàng</Text>
-        </View>
-      </Animated.View>
-
-      {/* Final CTA */}
-      <Animated.View
-        style={[
-          styles.finalCTASection,
-          {
-            transform: [{ scale: scaleAnim }],
-            opacity: fadeAnim
-          }
-        ]}
-      >
-        <Text style={styles.finalCTATitle}>
-          Sẵn sàng trải nghiệm{'\n'}quản lý thông minh?
-        </Text>
-        <Text style={styles.finalCTASubtitle}>
-          Trải nghiệm nền tảng toàn diện của EV CARE có thể tối ưu hóa hoạt động dịch vụ
-        </Text>
-        <TouchableOpacity style={styles.finalCTAButton}>
-          <Text style={styles.finalCTAButtonText}>Đặt lịch hẹn ngay</Text>
-          <Text style={styles.finalCTAArrow}>→</Text>
-        </TouchableOpacity>
-      </Animated.View>
+        </Animated.View>
       </Animated.ScrollView>
       {/* Sidebar + overlay (mounted at root of this screen) */}
       <SidebarOverlay isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -818,6 +802,18 @@ const styles = StyleSheet.create({
     color: '#1a40b8',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  menuButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  menuIcon: {
+    fontSize: 24,
+    color: '#1e293b',
+    fontWeight: 'bold',
+  },
+  placeholder: {
+    width: 44,
   },
 });
 

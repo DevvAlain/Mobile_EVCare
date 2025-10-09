@@ -39,7 +39,7 @@ const RootNavigator = () => {
               headerTintColor: "#000",
             }}
           >
-            
+
             <Stack.Screen
               name="Home"
               component={HomeScreen}
@@ -76,8 +76,8 @@ const RootNavigator = () => {
             />
             <Stack.Screen
               name="ManageVehicles"
-              component={HomeScreen}
-              options={{ headerTitle: "Quản lý xe" }}
+              component={require('../screens/VehicleManagementScreen').default}
+              options={{ headerTitle: 'Quản lý xe' }}
             />
             <Stack.Screen
               name="PaymentHistory"
