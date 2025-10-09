@@ -1,74 +1,60 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { apiClient } from "../../utils/api";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { axiosInstance } from "../constants/axiosConfig";
-import { Vehicle, CreateVehicleData } from "../../types/vehicle";
+import { Vehicle, UpdateVehicleData } from "../../types/vehicle";
+import { fetchVehicles as fetchVehiclesBooking } from "./bookingSlice";
 
-// Async thunks for API calls
-export const fetchVehicles = createAsyncThunk<Vehicle[]>(
-  "vehicle/fetchVehicles",
-  async () => {
-    try {
-      const res = await axiosInstance.get("/vehicles");
-      // Backend typically returns { data: [...] }
-      return res.data?.data ?? res.data ?? [];
-    } catch (err) {
-      const e: any = err;
-      console.error(
-        "[vehicleSlice] fetchVehicles error:",
-        e?.response?.status,
-        e?.response?.data,
-        e?.config?.url
-      );
-      throw err;
-    }
-  }
-);
-
-// Create vehicle expects CreateVehicleData payload (same as FE)
-export const createVehicle = createAsyncThunk<Vehicle, CreateVehicleData>(
-  "vehicle/createVehicle",
-  async (payload) => {
-    try {
-      const res = await axiosInstance.post("/vehicles", payload);
-      return res.data?.data ?? res.data;
-    } catch (err) {
-      const e: any = err;
-      console.error(
-        "[vehicleSlice] createVehicle error:",
-        e?.response?.status,
-        e?.response?.data,
-        e?.config?.url
-      );
-      throw err;
-    }
-  }
-);
+// Note: fetch/create are handled in bookingSlice to mirror FE. This slice only updates/deletes.
 
 // Update vehicle expects { vehicleId, updateData } to match FE usage
 export const updateVehicle = createAsyncThunk<
   Vehicle,
-  { vehicleId: string; updateData: any }
->("vehicle/updateVehicle", async ({ vehicleId, updateData }) => {
-  try {
-    const res = await axiosInstance.put(`/vehicles/${vehicleId}`, updateData);
-    return res.data?.data ?? res.data;
-  } catch (err) {
-    const e: any = err;
-    console.error(
-      "[vehicleSlice] updateVehicle error:",
-      e?.response?.status,
-      e?.response?.data,
-      e?.config?.url
-    );
-    throw err;
+  { vehicleId: string; updateData: UpdateVehicleData }
+>(
+  "vehicle/updateVehicle",
+  async ({ vehicleId, updateData }, { dispatch }) => {
+    try {
+      // Align with web FE: convert nested fields to dot-path keys the backend expects
+      const info =
+        ("vehicleInfo" in updateData && (updateData as any).vehicleInfo)
+          ? (updateData as any).vehicleInfo
+          : (updateData as any);
+
+      const payload: Record<string, string | number> = {};
+      if (typeof info?.licensePlate === "string") {
+        payload["vehicleInfo.licensePlate"] = info.licensePlate;
+      }
+      if (typeof info?.color === "string") {
+        payload["vehicleInfo.color"] = info.color;
+      }
+      if (typeof info?.year === "number") {
+        payload["vehicleInfo.year"] = info.year;
+      }
+
+      const res = await axiosInstance.put(`/vehicles/${vehicleId}`, payload);
+      const updated = res.data?.data ?? res.data;
+      // Refresh list using booking flow to mirror FE
+      dispatch(fetchVehiclesBooking());
+      return updated;
+    } catch (err) {
+      const e: any = err;
+      console.error(
+        "[vehicleSlice] updateVehicle error:",
+        e?.response?.status,
+        e?.response?.data,
+        e?.config?.url
+      );
+      throw err;
+    }
   }
-});
+);
 
 export const deleteVehicle = createAsyncThunk<string, string>(
   "vehicle/deleteVehicle",
-  async (id) => {
+  async (id, { dispatch }) => {
     try {
       await axiosInstance.delete(`/vehicles/${id}`);
+      // Refresh list after deletion using booking flow
+      dispatch(fetchVehiclesBooking());
       return id;
     } catch (err) {
       const e: any = err;
@@ -101,19 +87,17 @@ const vehicleSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchVehicles.pending, (state) => {
+      // Mirror FE: respond to booking fetchVehicles to keep local copy in sync (optional)
+      .addCase(fetchVehiclesBooking.pending, (state) => {
         state.status = "loading";
       })
-      .addCase(fetchVehicles.fulfilled, (state, action) => {
+      .addCase(fetchVehiclesBooking.fulfilled, (state, action: PayloadAction<Vehicle[]>) => {
         state.status = "succeeded";
         state.vehicles = action.payload;
       })
-      .addCase(fetchVehicles.rejected, (state, action) => {
+      .addCase(fetchVehiclesBooking.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message || null;
-      })
-      .addCase(createVehicle.fulfilled, (state, action) => {
-        state.vehicles.push(action.payload);
       })
       .addCase(updateVehicle.fulfilled, (state, action) => {
         const index = state.vehicles.findIndex(

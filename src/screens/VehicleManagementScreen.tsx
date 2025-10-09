@@ -13,15 +13,14 @@ import {
 } from 'react-native';
 import { useAppDispatch, useAppSelector, RootState } from '../service/store';
 import { fetchVehicles as fetchBookingVehicles, createVehicle as createBookingVehicle } from '../service/slices/bookingSlice';
-import { fetchVehicles as fetchVehicleService, updateVehicle, deleteVehicle } from '../service/slices/vehicleSlice';
+import { updateVehicle, deleteVehicle } from '../service/slices/vehicleSlice';
 import { Vehicle, CreateVehicleData } from '../types/vehicle';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { axiosInstance } from '../service/constants/axiosConfig';
 
 const VehicleManagementScreen = () => {
     const dispatch = useAppDispatch();
-    const { vehicles, status, error } = useAppSelector((state: RootState) => state.vehicle);
-    const loading = status === 'loading';
+    const { vehicles, loading, error } = useAppSelector((state: RootState) => state.booking);
     const [refreshing, setRefreshing] = useState(false);
 
     const [addOpen, setAddOpen] = useState(false);
@@ -53,7 +52,7 @@ const VehicleManagementScreen = () => {
     const [showBrandDropdown, setShowBrandDropdown] = useState(false);
 
     useEffect(() => {
-        // Fetch vehicles using bookingSlice
+        // Fetch vehicles using booking slice (align with FE flow)
         dispatch(fetchBookingVehicles());
     }, [dispatch]);
 
@@ -194,7 +193,7 @@ const VehicleManagementScreen = () => {
             await dispatch(updateVehicle({ vehicleId: selected._id, updateData: payload })).unwrap();
             setEditOpen(false);
             setSelected(null);
-            dispatch(fetchVehicleService());
+            dispatch(fetchBookingVehicles());
             Alert.alert('Thành công', 'Cập nhật thông tin xe thành công');
         } catch (err: any) {
             const msg = err?.message || err?.data?.message || 'Không thể cập nhật xe';
@@ -217,7 +216,7 @@ const VehicleManagementScreen = () => {
             await dispatch(deleteVehicle(selected._id)).unwrap();
             setDeleteOpen(false);
             setSelected(null);
-            dispatch(fetchVehicleService());
+            dispatch(fetchBookingVehicles());
             Alert.alert('Thành công', 'Đã xóa xe thành công');
         } catch (err: any) {
             const msg = err?.message || err?.data?.message || 'Không thể xóa xe';
@@ -466,7 +465,7 @@ const VehicleManagementScreen = () => {
                     refreshing={refreshing}
                     onRefresh={async () => {
                         setRefreshing(true);
-                        await dispatch(fetchBookingVehicles());
+                        await dispatch(fetchVehicleService());
                         setRefreshing(false);
                     }}
                 />
@@ -492,10 +491,13 @@ const VehicleManagementScreen = () => {
                         <FormField
                             label="Hãng xe *"
                             value={form.vehicleInfo.brand}
-                            onChange={(t: string) => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, brand: t } }))}
+                            onChange={() => {}}
                             placeholder="Chọn hãng xe"
                             error={fieldErrors.brand}
                             iconName="directions-car"
+                            isSelect
+                            onSelectPress={() => setShowBrandDropdown(true)}
+                            editable={true}
                         />
 
                         <FormField
@@ -534,8 +536,8 @@ const VehicleManagementScreen = () => {
                             error={fieldErrors.year}
                             iconName="event"
                             showIncrementDecrement
-                            onIncrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: p.vehicleInfo.year + 1 } }))}
-                            onDecrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: p.vehicleInfo.year - 1 } }))}
+                            onIncrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (typeof p.vehicleInfo.year === 'number' ? p.vehicleInfo.year : Number(p.vehicleInfo.year) || new Date().getFullYear()) + 1 } }))}
+                            onDecrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (typeof p.vehicleInfo.year === 'number' ? p.vehicleInfo.year : Number(p.vehicleInfo.year) || new Date().getFullYear()) - 1 } }))}
                         />
 
                         <FormField
@@ -699,8 +701,8 @@ const VehicleManagementScreen = () => {
                             error={fieldErrors.year}
                             iconName="event"
                             showIncrementDecrement
-                            onIncrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: p.vehicleInfo.year + 1 } }))}
-                            onDecrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: p.vehicleInfo.year - 1 } }))}
+                            onIncrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (typeof p.vehicleInfo.year === 'number' ? p.vehicleInfo.year : Number(p.vehicleInfo.year) || new Date().getFullYear()) + 1 } }))}
+                            onDecrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (typeof p.vehicleInfo.year === 'number' ? p.vehicleInfo.year : Number(p.vehicleInfo.year) || new Date().getFullYear()) - 1 } }))}
                         />
                     </ScrollView>
 
