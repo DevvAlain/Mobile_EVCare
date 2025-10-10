@@ -11,6 +11,7 @@ import {
     ActivityIndicator,
     Alert,
     Keyboard,
+    TouchableWithoutFeedback,
 } from 'react-native';
 import { useAppDispatch, useAppSelector, RootState } from '../service/store';
 import { fetchVehicles as fetchBookingVehicles, createVehicle as createBookingVehicle } from '../service/slices/bookingSlice';
@@ -18,6 +19,7 @@ import { updateVehicle, deleteVehicle } from '../service/slices/vehicleSlice';
 import { Vehicle, CreateVehicleData } from '../types/vehicle';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { axiosInstance } from '../service/constants/axiosConfig';
+import { VEHICLE_BRANDS_ENDPOINT } from '../service/constants/apiConfig';
 
 const VehicleManagementScreen = () => {
     const dispatch = useAppDispatch();
@@ -48,9 +50,8 @@ const VehicleManagementScreen = () => {
     const [editSubmitting, setEditSubmitting] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    const defaultBrands = ['VinFast', 'Tesla', 'BMW', 'Mercedes', 'Audi', 'Porsche', 'Hyundai', 'Kia', 'Ford', 'Chevrolet', 'Toyota', 'Honda'];
     const [brands, setBrands] = useState<string[]>([]);
-    const [showBrandDropdown, setShowBrandDropdown] = useState(false);
+    const [showBrandDropdown, setShowBrandDropdown] = useState(false); // sẽ dùng cho select box nội bộ
 
     useEffect(() => {
         // Fetch vehicles using booking slice (align with FE flow)
@@ -62,13 +63,13 @@ const VehicleManagementScreen = () => {
         let mounted = true;
         const getBrands = async () => {
             try {
-                const res = await axiosInstance.get('/vehicles/brands');
-                const data = res?.data?.data ?? res?.data ?? [];
-                if (mounted && Array.isArray(data) && data.length > 0) setBrands(data as string[]);
-                else if (mounted) setBrands(defaultBrands);
+                const res = await axiosInstance.get(VEHICLE_BRANDS_ENDPOINT);
+                const data = res?.data?.data ?? [];
+                if (mounted && Array.isArray(data)) {
+                    setBrands(data);
+                }
             } catch (err) {
-                // fallback to default brands so the UI still works
-                if (mounted) setBrands(defaultBrands);
+                console.error("Failed to fetch brands", err);
             }
         };
         getBrands();
@@ -253,6 +254,7 @@ const VehicleManagementScreen = () => {
         onDecrement
     }: any) => {
         const stringValue = value === undefined || value === null ? '' : String(value);
+
         return (
             <View style={styles.formField}>
                 <Text style={styles.formLabel}>{label}</Text>
@@ -264,11 +266,15 @@ const VehicleManagementScreen = () => {
                             !editable && styles.inputDisabled
                         ]}
                         onPress={() => {
-                            console.log('Select pressed - brand:', form.vehicleInfo.brand);
-                            setShowBrandDropdown(true); // Ensure dropdown visibility is toggled correctly
+                            if (editable) {
+                                Keyboard.dismiss();
+                                if (addOpen) setAddOpen(false);
+                                if (editOpen) setEditOpen(false);
+                                setShowBrandDropdown(true);
+                            }
                         }}
                         disabled={!editable}
-                        activeOpacity={0.6}
+                        activeOpacity={editable ? 0.6 : 1}
                     >
                         <TextInput
                             style={[
@@ -479,9 +485,15 @@ const VehicleManagementScreen = () => {
                 />
             )}
 
-            {/* Add Vehicle Modal */}
-            <Modal visible={addOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setAddOpen(false)}>
-                <View style={styles.modalContainer} onStartShouldSetResponder={() => true} onResponderRelease={dismissKeyboard}>
+            {/* Add Vehicle Modal - FIXED */}
+            <Modal
+                visible={addOpen}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setAddOpen(false)}
+            >
+                <View style={styles.modalContainer}>
+                    {/* Header */}
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>Thêm xe mới</Text>
                         <TouchableOpacity onPress={() => setAddOpen(false)} style={styles.closeButton}>
@@ -489,88 +501,228 @@ const VehicleManagementScreen = () => {
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView style={styles.modalContent} keyboardShouldPersistTaps="handled">
+                    {/* Content - ĐÃ SỬA: Loại bỏ TouchableWithoutFeedback và thêm onScrollBeginDrag */}
+                    <ScrollView
+                        style={styles.modalContent}
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={{ flexGrow: 1 }}
+                        onScrollBeginDrag={dismissKeyboard} // ← THÊM DÒNG NÀY
+                    >
                         {formError && (
                             <View style={styles.formErrorContainer}>
                                 <Text style={styles.formErrorText}>{formError}</Text>
                             </View>
                         )}
 
-                        <FormField
-                            label="Hãng xe *"
-                            value={form.vehicleInfo.brand}
-                            onChange={() => { }}
-                            placeholder="Chọn hãng xe"
-                            error={fieldErrors.brand}
-                            iconName="directions-car"
-                            isSelect={true}
-                            onSelectPress={() => setShowBrandDropdown(true)}
-                            editable={true}
-                        />
+                        {/* Field Hãng xe với dropdown select box */}
+                        <View style={styles.formField}>
+                            <Text style={styles.formLabel}>Hãng xe *</Text>
+                            <View>
+                                <TouchableOpacity
+                                    style={[styles.formInputContainer, fieldErrors.brand && styles.inputError]}
+                                    onPress={() => {
+                                        Keyboard.dismiss();
+                                        setShowBrandDropdown((prev) => !prev);
+                                    }}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={[styles.formInput, { color: form.vehicleInfo.brand ? '#1F2937' : '#9CA3AF' }]}>
+                                        {form.vehicleInfo.brand || 'Chọn hãng xe'}
+                                    </Text>
+                                    <Icon name="directions-car" size={20} color="#6B7280" style={styles.inputIcon} />
+                                    <Icon name="arrow-drop-down" size={24} color="#6B7280" style={styles.selectIcon} />
+                                </TouchableOpacity>
+                                {showBrandDropdown && (
+                                    <View style={styles.inlineDropdownContainer}>
+                                        <ScrollView style={{ maxHeight: 200 }}>
+                                            {brands.map((item) => (
+                                                <TouchableOpacity
+                                                    key={item}
+                                                    style={[styles.dropdownItem, form.vehicleInfo.brand === item && styles.dropdownItemSelected]}
+                                                    onPress={() => {
+                                                        setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, brand: item } }));
+                                                        setShowBrandDropdown(false);
+                                                    }}
+                                                >
+                                                    <Text style={styles.dropdownItemText}>{item}</Text>
+                                                    {form.vehicleInfo.brand === item && <Icon name="check" size={20} color="#10B981" />}
+                                                </TouchableOpacity>
+                                            ))}
+                                        </ScrollView>
+                                    </View>
+                                )}
+                            </View>
+                            {fieldErrors.brand && <Text style={styles.errorText}>{fieldErrors.brand}</Text>}
+                        </View>
 
-                        <FormField
-                            label="Dòng xe *"
-                            value={form.vehicleInfo.modelName}
-                            onChange={(t: string) => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, modelName: t } }))}
-                            placeholder="Nhập dòng xe"
-                            error={fieldErrors.modelName}
-                            iconName="model-training"
-                        />
+                        <View style={styles.formField}>
+                            <Text style={styles.formLabel}>Dòng xe *</Text>
+                            <View style={[
+                                styles.formInputContainer,
+                                fieldErrors.modelName && styles.inputError,
+                                { paddingHorizontal: 12 }
+                            ]}>
+                                <TextInput
+                                    style={[styles.formInput, { flex: 1 }]}
+                                    value={form.vehicleInfo.modelName}
+                                    onChangeText={(text) => setForm(prev => ({
+                                        vehicleInfo: { ...prev.vehicleInfo, modelName: text }
+                                    }))}
+                                    placeholder="Nhập dòng xe"
+                                    placeholderTextColor="#9CA3AF"
+                                    returnKeyType="next"
+                                    pointerEvents="auto"
+                                />
+                                <Icon name="model-training" size={20} color="#6B7280" style={styles.inputIcon} />
+                            </View>
+                            {fieldErrors.modelName && <Text style={styles.errorText}>{fieldErrors.modelName}</Text>}
+                        </View>
 
-                        <FormField
-                            label="Biển số *"
-                            value={form.vehicleInfo.licensePlate}
-                            onChange={(t: string) => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, licensePlate: t } }))}
-                            placeholder="VD: 30A-12345"
-                            error={fieldErrors.licensePlate}
-                            iconName="badge"
-                        />
+                        <View style={styles.formField}>
+                            <Text style={styles.formLabel}>Biển số *</Text>
+                            <View style={[
+                                styles.formInputContainer,
+                                fieldErrors.licensePlate && styles.inputError,
+                                { paddingHorizontal: 12 }
+                            ]}>
+                                <TextInput
+                                    style={[styles.formInput, { flex: 1 }]}
+                                    value={form.vehicleInfo.licensePlate}
+                                    onChangeText={(text) => setForm(prev => ({
+                                        vehicleInfo: { ...prev.vehicleInfo, licensePlate: text }
+                                    }))}
+                                    placeholder="VD: 30A-12345"
+                                    placeholderTextColor="#9CA3AF"
+                                    returnKeyType="next"
+                                    autoCapitalize="characters"
+                                    pointerEvents="auto"
+                                />
+                                <Icon name="badge" size={20} color="#6B7280" style={styles.inputIcon} />
+                            </View>
+                            {fieldErrors.licensePlate && <Text style={styles.errorText}>{fieldErrors.licensePlate}</Text>}
+                        </View>
 
-                        <FormField
-                            label="Màu sắc *"
-                            value={form.vehicleInfo.color}
-                            onChange={(t: string) => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, color: t } }))}
-                            placeholder="Nhập màu xe"
-                            error={fieldErrors.color}
-                            iconName="palette"
-                        />
+                        <View style={styles.formField}>
+                            <Text style={styles.formLabel}>Màu sắc *</Text>
+                            <View style={[
+                                styles.formInputContainer,
+                                fieldErrors.color && styles.inputError,
+                                { paddingHorizontal: 12 }
+                            ]}>
+                                <TextInput
+                                    style={[styles.formInput, { flex: 1 }]}
+                                    value={form.vehicleInfo.color}
+                                    onChangeText={(text) => setForm(prev => ({
+                                        vehicleInfo: { ...prev.vehicleInfo, color: text }
+                                    }))}
+                                    placeholder="Nhập màu xe"
+                                    placeholderTextColor="#9CA3AF"
+                                    returnKeyType="next"
+                                    pointerEvents="auto"
+                                />
+                                <Icon name="palette" size={20} color="#6B7280" style={styles.inputIcon} />
+                            </View>
+                            {fieldErrors.color && <Text style={styles.errorText}>{fieldErrors.color}</Text>}
+                        </View>
 
-                        <FormField
-                            label="Năm sản xuất *"
-                            value={String(form.vehicleInfo.year)}
-                            onChange={(t: string) => {
-                                const numValue = t === '' ? new Date().getFullYear() : parseInt(t) || new Date().getFullYear();
-                                setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: numValue } }));
-                            }}
-                            placeholder="Nhập năm sản xuất"
-                            keyboardType="numeric"
-                            error={fieldErrors.year}
-                            iconName="event"
-                            showIncrementDecrement
-                            onIncrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (p.vehicleInfo.year) + 1 } }))}
-                            onDecrement={() => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, year: (p.vehicleInfo.year) - 1 } }))}
-                        />
+                        {/* Year field */}
+                        <View style={styles.formField}>
+                            <Text style={styles.formLabel}>Năm sản xuất *</Text>
+                            <View style={[
+                                styles.formInputContainer,
+                                fieldErrors.year && styles.inputError,
+                                { paddingHorizontal: 8 }
+                            ]}>
+                                <TouchableOpacity
+                                    onPress={() => setForm(prev => ({
+                                        vehicleInfo: { ...prev.vehicleInfo, year: Math.max(1970, prev.vehicleInfo.year - 1) }
+                                    }))}
+                                    style={styles.incrementDecrementButton}
+                                >
+                                    <Icon name="remove" size={20} color="#6B7280" />
+                                </TouchableOpacity>
 
-                        <FormField
-                            label="Loại pin *"
-                            value={form.vehicleInfo.batteryType}
-                            onChange={(t: string) => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, batteryType: t } }))}
-                            placeholder="Nhập loại pin"
-                            error={fieldErrors.batteryType}
-                            iconName="battery-full"
-                        />
+                                <TextInput
+                                    style={[styles.formInput, { textAlign: 'center', flex: 1 }]}
+                                    value={String(form.vehicleInfo.year)}
+                                    onChangeText={(text) => {
+                                        const numValue = text === '' ? new Date().getFullYear() : parseInt(text) || new Date().getFullYear();
+                                        setForm(prev => ({
+                                            vehicleInfo: { ...prev.vehicleInfo, year: numValue }
+                                        }));
+                                    }}
+                                    placeholder="Nhập năm sản xuất"
+                                    keyboardType="number-pad"
+                                    placeholderTextColor="#9CA3AF"
+                                    returnKeyType="next"
+                                    pointerEvents="auto"
+                                />
 
-                        <FormField
-                            label="Dung lượng pin (kWh) *"
-                            value={String(form.vehicleInfo.batteryCapacity)}
-                            onChange={(t: string) => setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, batteryCapacity: t } }))}
-                            placeholder="Nhập dung lượng pin"
-                            keyboardType="numeric"
-                            error={fieldErrors.batteryCapacity}
-                            iconName="battery-charging-full"
-                        />
+                                <TouchableOpacity
+                                    onPress={() => setForm(prev => ({
+                                        vehicleInfo: { ...prev.vehicleInfo, year: Math.min(new Date().getFullYear() + 1, prev.vehicleInfo.year + 1) }
+                                    }))}
+                                    style={styles.incrementDecrementButton}
+                                >
+                                    <Icon name="add" size={20} color="#6B7280" />
+                                </TouchableOpacity>
+
+                                <Icon name="event" size={20} color="#6B7280" style={styles.inputIcon} />
+                            </View>
+                            {fieldErrors.year && <Text style={styles.errorText}>{fieldErrors.year}</Text>}
+                        </View>
+
+                        <View style={styles.formField}>
+                            <Text style={styles.formLabel}>Loại pin *</Text>
+                            <View style={[
+                                styles.formInputContainer,
+                                fieldErrors.batteryType && styles.inputError,
+                                { paddingHorizontal: 12 }
+                            ]}>
+                                <TextInput
+                                    style={[styles.formInput, { flex: 1 }]}
+                                    value={form.vehicleInfo.batteryType}
+                                    onChangeText={(text) => setForm(prev => ({
+                                        vehicleInfo: { ...prev.vehicleInfo, batteryType: text }
+                                    }))}
+                                    placeholder="Nhập loại pin"
+                                    placeholderTextColor="#9CA3AF"
+                                    returnKeyType="next"
+                                    pointerEvents="auto"
+                                />
+                                <Icon name="battery-full" size={20} color="#6B7280" style={styles.inputIcon} />
+                            </View>
+                            {fieldErrors.batteryType && <Text style={styles.errorText}>{fieldErrors.batteryType}</Text>}
+                        </View>
+
+                        <View style={styles.formField}>
+                            <Text style={styles.formLabel}>Dung lượng pin (kWh) *</Text>
+                            <View style={[
+                                styles.formInputContainer,
+                                fieldErrors.batteryCapacity && styles.inputError,
+                                { paddingHorizontal: 12 }
+                            ]}>
+                                <TextInput
+                                    style={[styles.formInput, { flex: 1 }]}
+                                    value={String(form.vehicleInfo.batteryCapacity)}
+                                    onChangeText={(text) => setForm(prev => ({
+                                        vehicleInfo: { ...prev.vehicleInfo, batteryCapacity: text }
+                                    }))}
+                                    placeholder="Nhập dung lượng pin"
+                                    keyboardType="decimal-pad"
+                                    placeholderTextColor="#9CA3AF"
+                                    returnKeyType="done"
+                                    pointerEvents="auto"
+                                />
+                                <Icon name="battery-charging-full" size={20} color="#6B7280" style={styles.inputIcon} />
+                            </View>
+                            {fieldErrors.batteryCapacity && <Text style={styles.errorText}>{fieldErrors.batteryCapacity}</Text>}
+                        </View>
+                        <View style={{ height: 50 }} />
                     </ScrollView>
 
+                    {/* Actions */}
                     <View style={styles.modalActions}>
                         <TouchableOpacity
                             style={[styles.modalButton, styles.cancelButton]}
@@ -594,38 +746,7 @@ const VehicleManagementScreen = () => {
                 </View>
             </Modal>
 
-            {/* Brand Selection Modal - Fixed */}
-            <Modal visible={showBrandDropdown} transparent animationType="fade">
-                <View style={styles.dropdownOverlay}>
-                    <View style={styles.dropdownContainer}>
-                        <View style={styles.dropdownHeader}>
-                            <Text style={styles.dropdownTitle}>Chọn hãng xe</Text>
-                            <TouchableOpacity onPress={() => setShowBrandDropdown(false)}>
-                                <Icon name="close" size={24} color="#6B7280" />
-                            </TouchableOpacity>
-                        </View>
-                        <FlatList
-                            data={brands}
-                            keyExtractor={(item) => item}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={[
-                                        styles.dropdownItem,
-                                        form.vehicleInfo.brand === item && styles.dropdownItemSelected
-                                    ]}
-                                    onPress={() => {
-                                        setForm((p) => ({ vehicleInfo: { ...p.vehicleInfo, brand: item } }));
-                                        setShowBrandDropdown(false);
-                                    }}
-                                >
-                                    <Text style={styles.dropdownItemText}>{item}</Text>
-                                    {form.vehicleInfo.brand === item && <Icon name="check" size={20} color="#10B981" />}
-                                </TouchableOpacity>
-                            )}
-                        />
-                    </View>
-                </View>
-            </Modal>
+
 
             {/* View Details Modal */}
             <Modal visible={viewOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setViewOpen(false)}>
@@ -796,6 +917,22 @@ const VehicleManagementScreen = () => {
 };
 
 const styles = StyleSheet.create({
+    inlineDropdownContainer: {
+        position: 'absolute',
+        top: 56,
+        left: 0,
+        right: 0,
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        zIndex: 100,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
     container: {
         flex: 1,
         backgroundColor: '#F8FAFC',

@@ -76,7 +76,7 @@ const RootNavigator = () => {
             />
             <Stack.Screen
               name="ManageVehicles"
-              component={HomeScreen}
+              component={require("../screens/VehicleManagementScreen").default}
               options={{ headerTitle: "Quản lý xe" }}
             />
             <Stack.Screen

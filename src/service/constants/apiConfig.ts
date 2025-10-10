@@ -119,3 +119,5 @@ export const PAYOS_PAYMENT_INFO_ENDPOINT = (orderCode: string) =>
   `${API_BASE_URL}/payment/${orderCode}`;
 export const PAYOS_CANCEL_ENDPOINT = (orderCode: string) =>
   `${API_BASE_URL}/payment/${orderCode}/cancel`;
+
+export const VEHICLE_BRANDS_ENDPOINT = `${API_BASE_URL}/vehicle-models/brands/list`;
