@@ -175,23 +175,43 @@ const HomeScreen = () => {
               <Text style={styles.userName}>EV Care</Text>
             </View>
 
-            {/* Avatar bên phải - điều hướng đến profile */}
-            {isAuthenticated && (
-              <TouchableOpacity
-                style={styles.profileButton}
-                onPress={() => navigation.navigate('Profile')}
-              >
-                <View style={styles.profileIcon}>
-                  {user?.avatar ? (
-                    <Image source={{ uri: user.avatar }} style={styles.profileIconImage} />
-                  ) : (
-                    <Text style={styles.profileIconText}>
-                      {user?.fullName?.charAt(0) || '👤'}
-                    </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            )}
+            {/* Hiển thị nút Login/Register hoặc Avatar */}
+            <View style={styles.authButtons}>
+              {!isAuthenticated ? (
+                <>
+                  <TouchableOpacity
+                    style={styles.loginButton}
+                    onPress={() => navigation.navigate('Auth', { screen: 'Login' })} // Điều hướng đến AuthStack và màn hình Login
+                  >
+                    <Text style={styles.loginButtonText}>Login</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.registerButton}
+                    onPress={() => navigation.navigate('Auth', { screen: 'Register' })} // Điều hướng đến AuthStack và màn hình Register
+                  >
+                    <Text style={styles.registerButtonText}>Register</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={styles.profileButton}
+                  onPress={() => navigation.navigate('Profile')}
+                >
+                  <View style={styles.profileIcon}>
+                    {user?.avatar ? (
+                      <Image
+                        source={{ uri: user.avatar }}
+                        style={styles.profileIconImage}
+                      />
+                    ) : (
+                      <Text style={styles.profileIconText}>
+                        {user?.fullName?.charAt(0) || '👤'}
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </Animated.View>
 

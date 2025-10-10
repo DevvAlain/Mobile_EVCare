@@ -22,7 +22,7 @@ type SidebarProps = {
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const navigation = useNavigation<any>();
   const dispatch = useDispatch();
-  const user = useSelector((state: RootState) => state.auth.user);
+  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
   const screenWidth = Dimensions.get('window').width;
   const translateX = useRef(new Animated.Value(-screenWidth)).current;
 
@@ -41,6 +41,15 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       }).start();
     }
   }, [isOpen, screenWidth]);
+
+  const handleNavigation = (route: string) => {
+    if (!isAuthenticated) {
+      navigation.navigate('Auth', { screen: 'Login' }); // Điều hướng đến AuthStack và màn hình Login
+    } else {
+      navigation.navigate(route);
+    }
+    onClose();
+  };
 
   const handleLogout = () => {
     // Clear user profile and navigate to login
@@ -78,10 +87,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => {
-            navigation.navigate('Profile');
-            onClose();
-          }}>
+          onPress={() => handleNavigation('Profile')}>
           <View style={[styles.menuIcon, styles.iconBg]}>
             <Text style={styles.iconText}>👤</Text>
           </View>
@@ -90,10 +96,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => {
-            navigation.navigate('ManageVehicles');
-            onClose();
-          }}>
+          onPress={() => handleNavigation('ManageVehicles')}>
           <View style={[styles.menuIcon, styles.iconBg]}>
             <Text style={styles.iconText}>🚗</Text>
           </View>
@@ -102,10 +105,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => {
-            navigation.navigate('BookingHistory');
-            onClose();
-          }}>
+          onPress={() => handleNavigation('BookingHistory')}>
           <View style={[styles.menuIcon, styles.iconBg]}>
             <Text style={styles.iconText}>📅</Text>
           </View>
@@ -114,10 +114,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => {
-            navigation.navigate('PaymentHistory');
-            onClose();
-          }}>
+          onPress={() => handleNavigation('PaymentHistory')}>
           <View style={[styles.menuIcon, styles.iconBg]}>
             <Text style={styles.iconText}>💳</Text>
           </View>
@@ -126,10 +123,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => {
-            navigation.navigate('ChangePassword');
-            onClose();
-          }}>
+          onPress={() => handleNavigation('ChangePassword')}>
           <View style={[styles.menuIcon, styles.iconBg]}>
             <Text style={styles.iconText}>🔒</Text>
           </View>
@@ -138,10 +132,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => {
-            navigation.navigate('Settings');
-            onClose();
-          }}>
+          onPress={() => handleNavigation('Settings')}>
           <View style={[styles.menuIcon, styles.iconBg]}>
             <Text style={styles.iconText}>⚙️</Text>
           </View>

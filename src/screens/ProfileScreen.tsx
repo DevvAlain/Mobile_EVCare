@@ -53,20 +53,12 @@ const ProfileScreen: React.FC = () => {
           text: "Đăng xuất",
           style: "destructive",
           onPress: () => {
-            dispatch(logout());
-            const rootNav = navigation.getParent() || navigation;
-            rootNav.reset({
-              index: 0,
-              routes: [
-                {
-                  name: 'Main',
-                  state: {
-                    index: 0,
-                    routes: [{ name: 'Home' } as any],
-                  },
-                } as any,
-              ],
-            });
+            try {
+              dispatch(logout());
+            } catch (e) {
+              // ignore
+            }
+            navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
           },
         },
       ]

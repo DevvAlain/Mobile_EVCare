@@ -50,7 +50,7 @@ const RootNavigator = () => {
             <Stack.Screen
               name="Profile"
               component={ProfileScreen}
-              options={{ headerTitle: "Hồ sơ", presentation: "modal" }}
+              options={{ headerTitle: "Hồ sơ" }}
             />
 
             <Stack.Screen
@@ -76,8 +76,8 @@ const RootNavigator = () => {
             />
             <Stack.Screen
               name="ManageVehicles"
-              component={require('../screens/VehicleManagementScreen').default}
-              options={{ headerTitle: 'Quản lý xe' }}
+              component={HomeScreen}
+              options={{ headerTitle: "Quản lý xe" }}
             />
             <Stack.Screen
               name="PaymentHistory"
@@ -89,7 +89,7 @@ const RootNavigator = () => {
             <Stack.Screen
               name="Auth"
               component={AuthStack}
-              options={{ headerShown: false, presentation: "modal" }}
+              options={{ headerShown: false }}
             />
           </Stack.Navigator>
         </NavigationContainer>
