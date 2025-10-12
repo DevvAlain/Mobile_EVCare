@@ -85,6 +85,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       </View>
 
       <View style={styles.menuContainer}>
+        {/*
         <TouchableOpacity
           style={styles.menuItem}
           onPress={() => handleNavigation('Profile')}>
@@ -93,6 +94,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           </View>
           <Text style={styles.menuText}>Hồ sơ</Text>
         </TouchableOpacity>
+        */}
 
         <TouchableOpacity
           style={styles.menuItem}
@@ -167,6 +169,8 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   header: {
+    paddingTop: 50,
+    paddingBottom: 24,
     padding: 18,
     backgroundColor: '#1a40b8',
     borderBottomLeftRadius: 20,

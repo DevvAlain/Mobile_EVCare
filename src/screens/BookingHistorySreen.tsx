@@ -39,17 +39,17 @@ import {
 import { Booking } from '../types/booking';
 
 // --- Enhanced StarRating for RN ---
-const StarRating = ({ 
-  value = 0, 
-  size = 18, 
-  editable = false, 
-  onChange, 
+const StarRating = ({
+  value = 0,
+  size = 18,
+  editable = false,
+  onChange,
   showNumber = true,
-  interactive = true 
-}: { 
-  value?: number; 
-  size?: number; 
-  editable?: boolean; 
+  interactive = true
+}: {
+  value?: number;
+  size?: number;
+  editable?: boolean;
   onChange?: (n: number) => void;
   showNumber?: boolean;
   interactive?: boolean;
@@ -195,7 +195,7 @@ const BookingHistoryScreen: React.FC = () => {
     if (result.type?.endsWith('/fulfilled') && result.payload?.appointments) {
       const completed = result.payload.appointments.filter((b: Booking) => b.status === 'completed' && (!b.feedback || !b.feedback.overall));
       for (const b of completed) {
-        try { await dispatch(getCustomerFeedback(b._id) as any); } catch {}
+        try { await dispatch(getCustomerFeedback(b._id) as any); } catch { }
       }
     }
   }, [dispatch, statusFilter, sortBy, sortOrder, fromDate, toDate]);
@@ -208,7 +208,7 @@ const BookingHistoryScreen: React.FC = () => {
   const toggleFilters = () => {
     const newExpanded = !filtersExpanded;
     setFiltersExpanded(newExpanded);
-    
+
     Animated.timing(animatedHeight, {
       toValue: newExpanded ? 1 : 0,
       duration: 300,
@@ -219,7 +219,7 @@ const BookingHistoryScreen: React.FC = () => {
   const toggleStats = () => {
     const newExpanded = !statsExpanded;
     setStatsExpanded(newExpanded);
-    
+
     Animated.timing(animatedStatsHeight, {
       toValue: newExpanded ? 1 : 0,
       duration: 300,
@@ -390,7 +390,7 @@ const BookingHistoryScreen: React.FC = () => {
         </View>
         <View style={styles.headerRight}>
           {renderStatusChip(item.status)}
-          
+
         </View>
       </View>
 
@@ -427,13 +427,13 @@ const BookingHistoryScreen: React.FC = () => {
         {item.status === 'completed' && (
           <View style={styles.feedbackSection}>
             {item.feedback && (item.feedback.service || item.feedback.technician || item.feedback.facility || item.feedback.overall) ? (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.feedbackDisplay}
                 onPress={() => openFeedback(item)}
               >
                 <View style={styles.feedbackContent}>
-                  <StarRating 
-                    value={averageDetailed(item.feedback)} 
+                  <StarRating
+                    value={averageDetailed(item.feedback)}
                     size={16}
                     showNumber={true}
                     interactive={false}
@@ -444,7 +444,7 @@ const BookingHistoryScreen: React.FC = () => {
                 </View>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.feedbackButton}
                 onPress={() => openFeedback(item)}
               >
@@ -465,35 +465,35 @@ const BookingHistoryScreen: React.FC = () => {
           <Icon name="trending-up-outline" size={16} color="#1890ff" />
           <Text style={styles.actionButtonText}>Tiến độ</Text>
         </TouchableOpacity>
-      
-      {canReschedule(item.status) && (
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => startReschedule(item)}
-        >
-          <Icon name="calendar-outline" size={16} color="#52c41a" />
-          <Text style={styles.actionButtonText}>Đổi lịch</Text>
-        </TouchableOpacity>
-      )}
-      
-      {canCancel(item.status) && (
-        <TouchableOpacity
-          style={[styles.actionButton, styles.cancelButton]}
-          onPress={() => startCancel(item)}
-        >
-          <Icon name="close-outline" size={16} color="#ff4d4f" />
-          <Text style={[styles.actionButtonText, styles.cancelButtonText]}>Hủy</Text>
-        </TouchableOpacity>
-      )}
-    </View>
+
+        {canReschedule(item.status) && (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => startReschedule(item)}
+          >
+            <Icon name="calendar-outline" size={16} color="#52c41a" />
+            <Text style={styles.actionButtonText}>Đổi lịch</Text>
+          </TouchableOpacity>
+        )}
+
+        {canCancel(item.status) && (
+          <TouchableOpacity
+            style={[styles.actionButton, styles.cancelButton]}
+            onPress={() => startCancel(item)}
+          >
+            <Icon name="close-outline" size={16} color="#ff4d4f" />
+            <Text style={[styles.actionButtonText, styles.cancelButtonText]}>Hủy</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </TouchableOpacity>
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>      
+    <View style={[styles.container, { paddingTop: Math.max(insets.top - 30, 0) }]}>
       {/* Collapsible Filters - Moved to top */}
       <View style={styles.filtersContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.filtersHeader}
           onPress={toggleFilters}
         >
@@ -507,28 +507,28 @@ const BookingHistoryScreen: React.FC = () => {
             </View>
           </View>
           <View style={styles.filtersHeaderRight}>
-            <TouchableOpacity 
-              style={styles.clearFiltersButton} 
-              onPress={() => { 
-                setStatusFilter('all'); 
-                setFromDate(null); 
-                setToDate(null); 
-                setSortBy(''); 
-                setSortOrder(''); 
+            <TouchableOpacity
+              style={styles.clearFiltersButton}
+              onPress={() => {
+                setStatusFilter('all');
+                setFromDate(null);
+                setToDate(null);
+                setSortBy('');
+                setSortOrder('');
               }}
             >
               <Icon name="refresh-outline" size={16} color="#6b7280" />
               <Text style={styles.clearFiltersText}>Xóa</Text>
             </TouchableOpacity>
-            <Icon 
-              name={filtersExpanded ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#6b7280" 
+            <Icon
+              name={filtersExpanded ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#6b7280"
             />
           </View>
         </TouchableOpacity>
-        
-        <Animated.View 
+
+        <Animated.View
           style={[
             styles.filtersContent,
             {
@@ -543,8 +543,8 @@ const BookingHistoryScreen: React.FC = () => {
           {/* Status Filter */}
           <View style={styles.filterSection}>
             <Text style={styles.filterLabel}>Trạng thái</Text>
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.filterScrollContent}
             >
@@ -564,10 +564,10 @@ const BookingHistoryScreen: React.FC = () => {
                   ]}
                   onPress={() => setStatusFilter(value)}
                 >
-                  <Icon 
-                    name={icon as any} 
-                    size={16} 
-                    color={statusFilter === value ? '#ffffff' : '#6b7280'} 
+                  <Icon
+                    name={icon as any}
+                    size={16}
+                    color={statusFilter === value ? '#ffffff' : '#6b7280'}
                   />
                   <Text style={[
                     styles.filterChipText,
@@ -584,7 +584,7 @@ const BookingHistoryScreen: React.FC = () => {
 
       {/* Collapsible Statistics */}
       <View style={styles.statsContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.statsHeader}
           onPress={toggleStats}
         >
@@ -597,14 +597,14 @@ const BookingHistoryScreen: React.FC = () => {
               </Text>
             </View>
           </View>
-          <Icon 
-            name={statsExpanded ? "chevron-up" : "chevron-down"} 
-            size={20} 
-            color="#6b7280" 
+          <Icon
+            name={statsExpanded ? "chevron-up" : "chevron-down"}
+            size={20}
+            color="#6b7280"
           />
         </TouchableOpacity>
-        
-        <Animated.View 
+
+        <Animated.View
           style={[
             styles.statsContent,
             {
@@ -626,7 +626,7 @@ const BookingHistoryScreen: React.FC = () => {
                 <Text style={styles.statLabel}>Tổng số lịch</Text>
               </View>
             </View>
-            
+
             <View style={[styles.statCard, styles.confirmedCard]}>
               <View style={styles.statIconContainer}>
                 <Icon name="checkmark-circle-outline" size={24} color="#3B82F6" />
@@ -636,7 +636,7 @@ const BookingHistoryScreen: React.FC = () => {
                 <Text style={styles.statLabel}>Đã xác nhận</Text>
               </View>
             </View>
-            
+
             <View style={[styles.statCard, styles.inProgressCard]}>
               <View style={styles.statIconContainer}>
                 <Icon name="sync-outline" size={24} color="#F59E0B" />
@@ -646,7 +646,7 @@ const BookingHistoryScreen: React.FC = () => {
                 <Text style={styles.statLabel}>Đang thực hiện</Text>
               </View>
             </View>
-            
+
             <View style={[styles.statCard, styles.completedCard]}>
               <View style={styles.statIconContainer}>
                 <Icon name="checkmark-done-outline" size={24} color="#10B981" />
@@ -709,7 +709,7 @@ const BookingHistoryScreen: React.FC = () => {
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           onChange={(_, d) => { setShowToPicker(false); if (d) setToDate(d); }}
         />
-      )}  
+      )}
 
       <Portal>
         {/* Detail Modal */}
@@ -904,7 +904,7 @@ const BookingHistoryScreen: React.FC = () => {
             </Text>
           </View>
           <Divider style={{ marginVertical: 16 }} />
-          
+
           {!!feedbackFor && (
             <Card style={styles.bookingInfoCard}>
               <Card.Content>
@@ -940,10 +940,10 @@ const BookingHistoryScreen: React.FC = () => {
             <Text style={[styles.ratingLabel, { fontSize: 16, fontWeight: '600' }]}>
               Đánh giá tổng thể {!feedbackViewOnly && <Text style={{ color: '#EF4444' }}>*</Text>}
             </Text>
-            <StarRating 
-              value={fbOverall} 
-              editable={!feedbackViewOnly} 
-              onChange={setFbOverall} 
+            <StarRating
+              value={fbOverall}
+              editable={!feedbackViewOnly}
+              onChange={setFbOverall}
               size={28}
               showNumber={true}
               interactive={!feedbackViewOnly}
@@ -957,10 +957,10 @@ const BookingHistoryScreen: React.FC = () => {
             <View style={styles.ratingRow}>
               <View style={styles.ratingItem}>
                 <Text style={[styles.ratingItemLabel, { fontSize: 14, fontWeight: '500' }]}>Chất lượng dịch vụ</Text>
-                <StarRating 
-                  value={fbService} 
-                  editable={!feedbackViewOnly} 
-                  onChange={setFbService} 
+                <StarRating
+                  value={fbService}
+                  editable={!feedbackViewOnly}
+                  onChange={setFbService}
                   size={20}
                   showNumber={true}
                   interactive={!feedbackViewOnly}
@@ -968,10 +968,10 @@ const BookingHistoryScreen: React.FC = () => {
               </View>
               <View style={styles.ratingItem}>
                 <Text style={[styles.ratingItemLabel, { fontSize: 14, fontWeight: '500' }]}>Thái độ kỹ thuật viên</Text>
-                <StarRating 
-                  value={fbTech} 
-                  editable={!feedbackViewOnly} 
-                  onChange={setFbTech} 
+                <StarRating
+                  value={fbTech}
+                  editable={!feedbackViewOnly}
+                  onChange={setFbTech}
                   size={20}
                   showNumber={true}
                   interactive={!feedbackViewOnly}
@@ -981,10 +981,10 @@ const BookingHistoryScreen: React.FC = () => {
             <View style={styles.ratingRow}>
               <View style={styles.ratingItem}>
                 <Text style={[styles.ratingItemLabel, { fontSize: 14, fontWeight: '500' }]}>Cơ sở vật chất</Text>
-                <StarRating 
-                  value={fbFacility} 
-                  editable={!feedbackViewOnly} 
-                  onChange={setFbFacility} 
+                <StarRating
+                  value={fbFacility}
+                  editable={!feedbackViewOnly}
+                  onChange={setFbFacility}
                   size={20}
                   showNumber={true}
                   interactive={!feedbackViewOnly}
@@ -1006,11 +1006,11 @@ const BookingHistoryScreen: React.FC = () => {
                 </Card.Content>
               </Card>
             ) : (
-              <TextInput 
-                mode="outlined" 
-                value={fbComment} 
-                onChangeText={setFbComment} 
-                multiline 
+              <TextInput
+                mode="outlined"
+                value={fbComment}
+                onChangeText={setFbComment}
+                multiline
                 placeholder="Chia sẻ trải nghiệm của bạn về dịch vụ..."
                 style={styles.commentInput}
                 numberOfLines={4}
@@ -1027,19 +1027,19 @@ const BookingHistoryScreen: React.FC = () => {
           )}
 
           <View style={styles.modalActions}>
-            <Button 
-              mode="outlined" 
+            <Button
+              mode="outlined"
               onPress={() => setFeedbackOpen(false)}
               style={styles.cancelButtonModal}
             >
               {feedbackViewOnly ? 'Đóng' : 'Hủy'}
             </Button>
             {!feedbackViewOnly && (
-              <Button 
-                mode="contained" 
-                icon="star" 
-                onPress={submitFeedbackRN} 
-                loading={loading} 
+              <Button
+                mode="contained"
+                icon="star"
+                onPress={submitFeedbackRN}
+                loading={loading}
                 disabled={!fbOverall || fbOverall < 1}
                 style={styles.submitButton}
                 buttonColor="#F59E0B"
@@ -1101,7 +1101,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     padding: 12,
     marginBottom: 8,
-    
+
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -1149,7 +1149,7 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,  
+    gap: 12,
   },
   statCard: {
     flex: 1,
@@ -1504,10 +1504,10 @@ const styles = StyleSheet.create({
   },
 
   // Modal styles
-  modalBox: { 
-    margin: 16, 
-    backgroundColor: 'white', 
-    padding: 20, 
+  modalBox: {
+    margin: 16,
+    backgroundColor: 'white',
+    padding: 20,
     borderRadius: 16,
     maxHeight: '80%',
   },
@@ -1624,18 +1624,18 @@ const styles = StyleSheet.create({
   submitButton: {
     flex: 1,
   },
-  radioRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 4 
+  radioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
   },
-  label: { 
-    color: '#6B7280', 
-    fontSize: 12 
+  label: {
+    color: '#6B7280',
+    fontSize: 12
   },
-  value: { 
-    fontSize: 16, 
-    fontWeight: '600' 
+  value: {
+    fontSize: 16,
+    fontWeight: '600'
   },
 });
 
