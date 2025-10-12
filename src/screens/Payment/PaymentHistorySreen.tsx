@@ -97,7 +97,7 @@ const PaymentHistory: React.FC = () => {
   const toggleFilters = () => {
     const newExpanded = !filtersExpanded;
     setFiltersExpanded(newExpanded);
-    
+
     Animated.timing(animatedHeight, {
       toValue: newExpanded ? 1 : 0,
       duration: 300,
@@ -108,7 +108,7 @@ const PaymentHistory: React.FC = () => {
   const toggleStats = () => {
     const newExpanded = !statsExpanded;
     setStatsExpanded(newExpanded);
-    
+
     Animated.timing(animatedStatsHeight, {
       toValue: newExpanded ? 1 : 0,
       duration: 300,
@@ -220,7 +220,7 @@ const PaymentHistory: React.FC = () => {
   // Modern payment card component
   const PaymentCard: React.FC<{ payment: Payment }> = ({ payment }) => {
     const appointment = typeof payment.appointment === 'object' ? payment.appointment : null;
-    
+
     return (
       <TouchableOpacity style={styles.paymentCard} onPress={() => handleViewDetails(payment._id)}>
         {/* Card Header */}
@@ -300,7 +300,7 @@ const PaymentHistory: React.FC = () => {
               <Text style={[styles.actionButtonText, styles.primaryButtonText]}>Thanh toán</Text>
             </TouchableOpacity>
           )}
-          
+
           {payment.status === 'paid' && (
             <TouchableOpacity
               style={styles.actionButton}
@@ -320,10 +320,10 @@ const PaymentHistory: React.FC = () => {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top - 30, 0) }]}>
       {/* Collapsible Filters */}
       <View style={styles.filtersContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.filtersHeader}
           onPress={toggleFilters}
         >
@@ -337,22 +337,22 @@ const PaymentHistory: React.FC = () => {
             </View>
           </View>
           <View style={styles.filtersHeaderRight}>
-            <TouchableOpacity 
-              style={styles.clearFiltersButton} 
+            <TouchableOpacity
+              style={styles.clearFiltersButton}
               onPress={clearFilters}
             >
               <Icon name="refresh-outline" size={16} color="#6b7280" />
               <Text style={styles.clearFiltersText}>Xóa</Text>
             </TouchableOpacity>
-            <Icon 
-              name={filtersExpanded ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#6b7280" 
+            <Icon
+              name={filtersExpanded ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#6b7280"
             />
           </View>
         </TouchableOpacity>
-        
-        <Animated.View 
+
+        <Animated.View
           style={[
             styles.filtersContent,
             {
@@ -367,8 +367,8 @@ const PaymentHistory: React.FC = () => {
           {/* Status Filter */}
           <View style={styles.filterSection}>
             <Text style={styles.filterLabel}>Trạng thái</Text>
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.filterScrollContent}
             >
@@ -389,10 +389,10 @@ const PaymentHistory: React.FC = () => {
                   ]}
                   onPress={() => handleStatusFilterChange(value as PaymentStatusType | 'all')}
                 >
-                  <Icon 
-                    name={icon as any} 
-                    size={16} 
-                    color={statusFilter === value ? '#ffffff' : '#6b7280'} 
+                  <Icon
+                    name={icon as any}
+                    size={16}
+                    color={statusFilter === value ? '#ffffff' : '#6b7280'}
                   />
                   <Text style={[
                     styles.filterChipText,
@@ -409,7 +409,7 @@ const PaymentHistory: React.FC = () => {
 
       {/* Collapsible Statistics */}
       <View style={styles.statsContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.statsHeader}
           onPress={toggleStats}
         >
@@ -422,14 +422,14 @@ const PaymentHistory: React.FC = () => {
               </Text>
             </View>
           </View>
-          <Icon 
-            name={statsExpanded ? "chevron-up" : "chevron-down"} 
-            size={20} 
-            color="#6b7280" 
+          <Icon
+            name={statsExpanded ? "chevron-up" : "chevron-down"}
+            size={20}
+            color="#6b7280"
           />
         </TouchableOpacity>
-        
-        <Animated.View 
+
+        <Animated.View
           style={[
             styles.statsContent,
             {
@@ -451,7 +451,7 @@ const PaymentHistory: React.FC = () => {
                 <Text style={styles.statLabel}>Tổng giao dịch</Text>
               </View>
             </View>
-            
+
             <View style={[styles.statCard, styles.paidCard]}>
               <View style={styles.statIconContainer}>
                 <Icon name="checkmark-circle-outline" size={24} color="#10B981" />
@@ -461,7 +461,7 @@ const PaymentHistory: React.FC = () => {
                 <Text style={styles.statLabel}>Đã thanh toán</Text>
               </View>
             </View>
-            
+
             <View style={[styles.statCard, styles.pendingCard]}>
               <View style={styles.statIconContainer}>
                 <Icon name="time-outline" size={24} color="#F59E0B" />
@@ -471,7 +471,7 @@ const PaymentHistory: React.FC = () => {
                 <Text style={styles.statLabel}>Chờ thanh toán</Text>
               </View>
             </View>
-            
+
             <View style={[styles.statCard, styles.failedCard]}>
               <View style={styles.statIconContainer}>
                 <Icon name="close-circle-outline" size={24} color="#EF4444" />
@@ -540,7 +540,7 @@ const PaymentHistory: React.FC = () => {
                 <Text style={styles.closeButton}>✕</Text>
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView style={styles.modalBody}>
               <View style={styles.detailSection}>
                 <Text style={styles.detailTitle}>Thông tin thanh toán</Text>
@@ -550,13 +550,13 @@ const PaymentHistory: React.FC = () => {
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Trạng thái:</Text>
-                    <PaymentStatus status={paymentDetail.status} />
+                  <PaymentStatus status={paymentDetail.status} />
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Số tiền:</Text>
                   <Text style={[styles.detailValue, styles.amountValue]}>
-                      {formatCurrencyVND(paymentDetail.paymentInfo.amount)} VND
-                    </Text>
+                    {formatCurrencyVND(paymentDetail.paymentInfo.amount)} VND
+                  </Text>
                 </View>
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Phương thức:</Text>
@@ -568,7 +568,7 @@ const PaymentHistory: React.FC = () => {
                 </View>
               </View>
             </ScrollView>
-            
+
             <View style={styles.modalFooter}>
               <TouchableOpacity style={styles.modalButton} onPress={handleCloseDetailModal}>
                 <Text style={styles.modalButtonText}>Đóng</Text>
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     padding: 12,
   },
-  
+
   // Filters
   filtersContainer: {
     backgroundColor: 'white',

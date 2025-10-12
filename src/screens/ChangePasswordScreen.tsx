@@ -126,9 +126,9 @@ const ChangePasswordScreen = () => {
               },
             ]}
           >
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            {/* <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
               <Text style={styles.backText}>←</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             <View style={styles.logoContainer}>
               <Text style={styles.logo}>EV CARE</Text>
