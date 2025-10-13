@@ -9,8 +9,11 @@ import {
   ActivityIndicator,
   ScrollView,
   Dimensions,
-  Linking
+  Linking,
+  Image,
 } from 'react-native';
+// QR code generation
+import QRCode from 'react-native-qrcode-svg';
 import { useAppDispatch, useAppSelector } from '../../service/store';
 import { cancelPayOSPayment, getPaymentStatus, pollPaymentStatus, clearCurrentPayment } from '../../service/slices/paymentSlice.ts/paymentSlice';
 import { formatPaymentAmount } from '../../utils/paymentUtils';
@@ -45,6 +48,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [copied, setCopied] = useState(false);
+  const [qrImageError, setQrImageError] = useState<boolean>(false);
+  const [qrImageLoaded, setQrImageLoaded] = useState<boolean>(false);
+  const qrTimeoutRef = React.useRef<any>(null);
   const [paymentSuccessHandled, setPaymentSuccessHandled] = useState(false);
 
   useEffect(() => {
@@ -220,8 +226,85 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             <View style={styles.qrCard}>
               <Text style={styles.qrTitle}>Quét mã QR</Text>
               <View style={styles.qrContainer}>
-                <Text style={styles.qrPlaceholder}>QR Code</Text>
-                <Text style={styles.qrText}>{initialPaymentData.qrCode}</Text>
+                {/* Decide how to render QR: if value looks like a URI (data: or http) try Image; else show raw payload */}
+                {(() => {
+                  const val = initialPaymentData.qrCode;
+                  const isDataUri = typeof val === 'string' && val.startsWith('data:');
+                  const isHttpUrl = typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://'));
+
+                  if ((isDataUri || isHttpUrl) && !qrImageLoaded && !qrImageError && !qrTimeoutRef.current) {
+                    qrTimeoutRef.current = setTimeout(() => {
+                      console.warn('QR image load timed out, falling back to raw payload');
+                      setQrImageError(true);
+                      qrTimeoutRef.current = null;
+                    }, 1200);
+                  }
+
+                  if ((isDataUri || isHttpUrl) && !qrImageError) {
+                    return (
+                      <Image
+                        source={{ uri: val }}
+                        style={styles.qrImage}
+                        resizeMode="contain"
+                        onError={(e) => {
+                          console.warn('QR image load error:', e.nativeEvent?.error);
+                          setQrImageError(true);
+                          if (qrTimeoutRef.current) {
+                            clearTimeout(qrTimeoutRef.current);
+                            qrTimeoutRef.current = null;
+                          }
+                        }}
+                        onLoad={() => {
+                          setQrImageLoaded(true);
+                          setQrImageError(false);
+                          if (qrTimeoutRef.current) {
+                            clearTimeout(qrTimeoutRef.current);
+                            qrTimeoutRef.current = null;
+                          }
+                        }}
+                      />
+                    );
+                  }
+
+                  // If value is not a URI (likely payload string), generate QR client-side like web does
+                  if (!isDataUri && !isHttpUrl) {
+                    try {
+                      return (
+                        <View style={{ alignItems: 'center' }}>
+                          <QRCode value={String(val)} size={130} />
+                        </View>
+                      );
+                    } catch (err) {
+                      console.warn('QRCode generation failed:', err);
+                      // Fallthrough to show raw payload
+                    }
+                  }
+
+                  // Final fallback: show raw payload and option to open/copy
+                  return (
+                    <View style={{ alignItems: 'center', paddingHorizontal: 8 }}>
+                      <ScrollView style={{ maxHeight: 140 }} nestedScrollEnabled>
+                        <Text selectable style={styles.qrText}>{String(val)}</Text>
+                      </ScrollView>
+                      <TouchableOpacity
+                        style={[styles.copyButton, { marginTop: 8 }]}
+                        onPress={async () => {
+                          try {
+                            if (isHttpUrl) {
+                              Linking.openURL(val);
+                            } else {
+                              Alert.alert('QR payload', String(val), [{ text: 'Đóng' }]);
+                            }
+                          } catch (err) {
+                            Alert.alert('Lỗi', 'Không thể sao chép');
+                          }
+                        }}
+                      >
+                        <Text style={styles.copyButtonText}>Mở/Sao chép QR</Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })()}
               </View>
               <Text style={styles.qrDescription}>
                 Sử dụng ứng dụng ngân hàng để quét mã QR
@@ -446,6 +529,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 8,
     marginBottom: 8,
+  },
+  qrImage: {
+    width: 130,
+    height: 130,
   },
   qrPlaceholder: {
     fontSize: 12,
