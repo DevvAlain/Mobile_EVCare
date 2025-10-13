@@ -79,6 +79,7 @@ const HomeScreen = () => {
       icon: '📅',
       color: '#10B981',
       delay: 200,
+      onPress: () => navigation.navigate('Booking'),
     },
     {
       id: 3,
@@ -87,6 +88,7 @@ const HomeScreen = () => {
       icon: '📋',
       color: '#F59E0B',
       delay: 300,
+      onPress: () => navigation.navigate('BookingHistory'),
     },
     {
       id: 4,
@@ -95,13 +97,14 @@ const HomeScreen = () => {
       icon: '💳',
       color: '#8B5CF6',
       delay: 400,
+      onPress: () => navigation.navigate('PaymentHistory'),
     },
   ];
 
   const quickActions = [
     {
       id: 1,
-      title: 'Trung tâm\n gần bạn',
+      title: 'Trung tâm gần bạn',
       icon: '📍',
       color: '#3B82F6',
       delay: 0,
@@ -109,7 +112,7 @@ const HomeScreen = () => {
     },
     {
       id: 2,
-      title: 'Đặt lịch\n bảo dưỡng',
+      title: 'Đặt lịch bảo dưỡng',
       icon: '🔧',
       color: '#10B981',
       delay: 100,
@@ -117,7 +120,7 @@ const HomeScreen = () => {
     },
     {
       id: 3,
-      title: 'Lịch sử\n đặt lịch',
+      title: 'Lịch sử đặt lịch',
       icon: '📊',
       color: '#F59E0B',
       delay: 200,
@@ -125,7 +128,7 @@ const HomeScreen = () => {
     },
     {
       id: 4,
-      title: 'Quản lý\n xe',
+      title: 'Quản lý xe',
       icon: '🚙',
       color: '#8B5CF6',
       delay: 300,

@@ -16,6 +16,7 @@ import {
   TextInput,
   Chip,
   useTheme,
+  Menu,
 } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -157,6 +158,8 @@ const BookingHistoryScreen: React.FC = () => {
   const [slotLoading, setSlotLoading] = useState(false);
   const [rescheduleFor, setRescheduleFor] = useState<Booking | null>(null);
   const [rescheduleErr, setRescheduleErr] = useState('');
+  const [showRescheduleDatePicker, setShowRescheduleDatePicker] = useState(false);
+  const [showTimeMenu, setShowTimeMenu] = useState(false);
 
   // Cancel
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -280,6 +283,9 @@ const BookingHistoryScreen: React.FC = () => {
       const d = (detail.appointmentTime?.date || b.appointmentTime?.date || '').substring(0, 10);
       setNewDate(d ? new Date(d) : new Date());
       setSlot('');
+      setSlots([]);
+      setShowRescheduleDatePicker(false);
+      setShowTimeMenu(false);
       setRescheduleOpen(true);
     } catch (e: any) {
       setSnack(e?.message || 'Không thể tải chi tiết');
@@ -307,9 +313,25 @@ const BookingHistoryScreen: React.FC = () => {
     if (!rescheduleFor) return;
     if (!newDate) return setRescheduleErr('Vui lòng chọn ngày mới');
     if (!slot) return setRescheduleErr('Vui lòng chọn khung giờ mới');
+    
+    // Validate date is not in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(newDate);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      return setRescheduleErr('Không thể chọn ngày trong quá khứ');
+    }
+    
     setRescheduleErr('');
     try {
-      await dispatch(rescheduleBooking({ bookingId: rescheduleFor._id, appointmentDate: dayjs(newDate).format('YYYY-MM-DD'), appointmentTime: slot }) as any);
+      await dispatch(rescheduleBooking({ 
+        bookingId: rescheduleFor._id, 
+        appointmentDate: dayjs(newDate).format('YYYY-MM-DD'), 
+        appointmentTime: slot 
+      }) as any);
+      setSnack('Đổi lịch thành công!');
       setRescheduleOpen(false);
       await fetchList();
     } catch (e: any) {
@@ -711,6 +733,27 @@ const BookingHistoryScreen: React.FC = () => {
         />
       )}
 
+      
+      {/* Reschedule Date Picker */}
+      {showRescheduleDatePicker && (
+        <DateTimePicker
+          value={newDate || new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'inline' : 'default'}
+          minimumDate={new Date()}
+          onChange={(_, d) => { 
+            setShowRescheduleDatePicker(false); 
+            if (d) {
+              setNewDate(d);
+              setSlot(''); // Reset slot when date changes
+              setShowTimeMenu(false);
+            }
+          }}
+        />
+      )}  
+
+
+
       <Portal>
         {/* Detail Modal */}
         <Modal visible={detailOpen} onDismiss={() => setDetailOpen(false)} contentContainerStyle={styles.modalBox}>
@@ -831,30 +874,169 @@ const BookingHistoryScreen: React.FC = () => {
         <Modal visible={rescheduleOpen} onDismiss={() => setRescheduleOpen(false)} contentContainerStyle={styles.modalBox}>
           <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Đổi lịch hẹn</Text>
           <Divider style={{ marginVertical: 12 }} />
-          <TextInput
-            mode="outlined"
-            label="Ngày mới"
-            value={newDate ? dayjs(newDate).format('YYYY-MM-DD') : ''}
-            right={<TextInput.Icon icon="calendar" onPress={() => setNewDate(newDate || new Date())} />}
-            editable={false}
-          />
-          {/* Quick date pick trigger */}
-          <View style={{ marginTop: 6 }}>
-            <Button icon="calendar" onPress={() => setNewDate(new Date())}>Chọn hôm nay</Button>
+          
+          {/* Date Selection */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={[styles.label, { fontSize: 14, fontWeight: '600', marginBottom: 8 }]}>Chọn ngày mới</Text>
+            <TextInput
+              mode="outlined"
+              label="Ngày mới"
+              value={newDate ? dayjs(newDate).format('DD/MM/YYYY') : ''}
+              right={<TextInput.Icon icon="calendar" onPress={() => setShowRescheduleDatePicker(true)} />}
+              editable={false}
+              style={{ marginBottom: 8 }}
+            />
+            
+            {/* Quick date option */}
+            <View style={{ marginTop: 8 }}>
+              <Button 
+                mode="outlined" 
+                compact 
+                onPress={() => setNewDate(new Date())}
+                style={{ alignSelf: 'flex-start' }}
+              >
+                Chọn hôm nay
+              </Button>
+            </View>
           </View>
           {!!newDate && (
-            <View style={{ marginTop: 8 }}>
-              <Text style={styles.label}>Khung giờ mới</Text>
+            <View style={{ marginBottom: 20 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                <Icon name="time-outline" size={20} color="#1890ff" />
+                <Text style={{ 
+                  fontSize: 16, 
+                  fontWeight: '600', 
+                  color: '#1f2937',
+                  marginLeft: 8
+                }}>
+                  Chọn khung giờ
+                </Text>
+              </View>
+              
               {slotLoading ? (
-                <View style={{ paddingVertical: 8 }}><ProgressBar indeterminate /></View>
+                <View style={{ 
+                  backgroundColor: '#f8fafc',
+                  borderRadius: 12,
+                  padding: 20,
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#e2e8f0'
+                }}>
+                  <ProgressBar indeterminate color="#1890ff" />
+                  <Text style={{ 
+                    textAlign: 'center', 
+                    marginTop: 12, 
+                    color: '#6b7280',
+                    fontSize: 14
+                  }}>
+                    Đang tải khung giờ...
+                  </Text>
+                </View>
               ) : (
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {slots.map((s) => (
-                    <Chip key={`${s.startTime}-${s.endTime}`} selected={slot === s.startTime} onPress={() => setSlot(s.startTime)}>
-                      {`${formatTime12h(s.startTime)} - ${formatTime12h(s.endTime)}`}
-                    </Chip>
-                  ))}
-                  {!slots.length && <Text style={{ color: theme.colors.outline }}>Không có khung giờ trống</Text>}
+                <View>
+                  {slots.length > 0 ? (
+                    <Menu
+                      visible={showTimeMenu}
+                      onDismiss={() => setShowTimeMenu(false)}
+                      anchor={
+                        <TouchableOpacity
+                          style={{
+                            borderWidth: 2,
+                            borderColor: slot ? '#1890ff' : '#e2e8f0',
+                            borderRadius: 12,
+                            padding: 16,
+                            backgroundColor: slot ? '#f0f9ff' : 'white',
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.05,
+                            shadowRadius: 4,
+                            elevation: 2,
+                          }}
+                          onPress={() => setShowTimeMenu(true)}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ 
+                              color: slot ? '#1890ff' : '#6b7280',
+                              fontSize: 16,
+                              fontWeight: slot ? '600' : '400'
+                            }}>
+                              {slot ? 
+                                slots.find(s => s.startTime === slot) ? 
+                                  `${formatTime12h(slots.find(s => s.startTime === slot)!.startTime)} - ${formatTime12h(slots.find(s => s.startTime === slot)!.endTime)}` :
+                                  'Chọn khung giờ'
+                                : 'Chọn khung giờ'
+                              }
+                            </Text>
+                            {!slot && (
+                              <Text style={{ 
+                                color: '#9ca3af',
+                                fontSize: 12,
+                                marginTop: 2
+                              }}>
+                                Tap để xem các khung giờ có sẵn
+                              </Text>
+                            )}
+                          </View>
+                          <View style={{
+                            backgroundColor: slot ? '#1890ff' : '#f3f4f6',
+                            borderRadius: 6,
+                            padding: 4
+                          }}>
+                            <Icon 
+                              name="chevron-down" 
+                              size={16} 
+                              color={slot ? 'white' : '#6b7280'} 
+                            />
+                          </View>
+                        </TouchableOpacity>
+                      }
+                    >
+                      {slots.map((s) => (
+                        <Menu.Item
+                          key={`${s.startTime}-${s.endTime}`}
+                          onPress={() => {
+                            setSlot(s.startTime);
+                            setShowTimeMenu(false);
+                          }}
+                          title={`${formatTime12h(s.startTime)} - ${formatTime12h(s.endTime)}`}
+                          style={{
+                            backgroundColor: slot === s.startTime ? '#f0f9ff' : 'transparent'
+                          }}
+                        />
+                      ))}
+                    </Menu>
+                  ) : (
+                    <View style={{ 
+                      backgroundColor: '#fef2f2', 
+                      padding: 16, 
+                      borderRadius: 12, 
+                      borderWidth: 1, 
+                      borderColor: '#fecaca',
+                      alignItems: 'center'
+                    }}>
+                      <Icon name="alert-circle-outline" size={24} color="#dc2626" />
+                      <Text style={{ 
+                        color: '#dc2626', 
+                        textAlign: 'center', 
+                        fontWeight: '600',
+                        marginTop: 8,
+                        fontSize: 14
+                      }}>
+                        Không có khung giờ trống
+                      </Text>
+                      <Text style={{ 
+                        color: '#991b1b', 
+                        textAlign: 'center',
+                        marginTop: 4,
+                        fontSize: 12
+                      }}>
+                        Vui lòng chọn ngày khác
+                      </Text>
+                    </View>
+                  )}
                 </View>
               )}
             </View>

@@ -5,6 +5,8 @@ export interface ServiceDetails {
   complexity: string;
   requiredSkills: string[];
   tools: string[];
+  minTechnicians?: number;
+  maxTechnicians?: number;
 }
 
 export interface ServicePricing {

@@ -9,6 +9,7 @@ import userReducer from "../slices/userSlice";
 import bookingReducer from "../slices/bookingSlice";
 import paymentReducer from "../slices/paymentSlice.ts/paymentSlice";
 import vehicleReducer from "../slices/vehicleSlice";
+import serviceCenterReducer from "../slices/serviceCenterSilce.ts/serviceCenterSlice";
 
 const persistConfig = {
   key: "root",
@@ -23,6 +24,7 @@ const rootReducer = combineReducers({
   booking: bookingReducer,
   payment: paymentReducer, // Added payment slice
   vehicle: vehicleReducer, // Added vehicle slice
+  serviceCenter: serviceCenterReducer, // Added serviceCenter slice
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

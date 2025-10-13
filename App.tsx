@@ -5,6 +5,7 @@ import { PersistGate } from "redux-persist/integration/react";
 import { store, persistor } from "./src/service/store";
 import { RootNavigator } from "./src/navigation";
 import Toast from "react-native-toast-message";
+import 'react-native-gesture-handler';
 
 export default function App() {
   return (

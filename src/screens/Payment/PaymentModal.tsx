@@ -193,7 +193,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             <View style={styles.amountContainer}>
               <Text style={styles.amountLabel}>Số tiền</Text>
               <Text style={styles.amountValue}>
-                {formatPaymentAmount(initialPaymentData.amount)} VND
+                {initialPaymentData?.amount ? formatPaymentAmount(initialPaymentData.amount) : '0'} VND
               </Text>
             </View>
           </View>
