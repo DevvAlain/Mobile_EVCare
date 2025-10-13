@@ -44,6 +44,8 @@ export const REFRESH_TOKEN_ENDPOINT = "/auth/refresh-token";
 export const SERVICE_CENTERS_ENDPOINT = "/service-centers";
 export const SERVICE_CENTER_DETAIL_ENDPOINT = (id: string) =>
   `/service-centers/${id}`;
+export const GET_RATING_BY_SERVICE_CENTER_ID_ENDPOINT = (centerId: string) =>
+  `${API_BASE_URL}/service-centers/${centerId}/ratings`;
 
 // Booking endpoints
 export const MY_BOOKINGS_ENDPOINT = `${API_BASE_URL}/booking/my-bookings`;

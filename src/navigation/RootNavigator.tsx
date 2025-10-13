@@ -11,7 +11,7 @@ import { HomeScreen, ProfileScreen, SettingsScreen } from "../screens";
 import { LoginScreen } from "../screens/LoginScreen";
 import { RegisterScreen } from "../screens/RegisterScreen";
 import { ForgotPasswordScreen } from "../screens/ForgotPasswordScreen";
-
+import BookingScreen from "../screens/BookingScreen";
 import BookingHistoryScreen from "../screens/BookingHistorySreen";
 import PaymentHistoryScreen from "../screens/Payment/PaymentHistorySreen";
 
@@ -66,7 +66,7 @@ const RootNavigator = () => {
             />
             <Stack.Screen
               name="Booking"
-              component={HomeScreen}
+              component={BookingScreen}
               options={{ headerTitle: "Đặt lịch" }}
             />
             <Stack.Screen

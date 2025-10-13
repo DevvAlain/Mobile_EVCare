@@ -10,7 +10,8 @@ import {
   FlatList,
   RefreshControl,
   Dimensions,
-  Animated
+  Animated,
+  BackHandler
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons as Icon } from '@expo/vector-icons';
@@ -36,6 +37,7 @@ import { formatCurrencyVND } from '../../utils/paymentUtils';
 import { PaymentStatus as PaymentStatusType, Payment } from '../../types/payment';
 import { PAYMENT_STATUS_ENDPOINT } from '../../service/constants/apiConfig';
 import { axiosInstance } from '../../service/constants/axiosConfig';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import dayjs from 'dayjs';
 
 const { width } = Dimensions.get('window');
@@ -44,6 +46,7 @@ const PaymentHistory: React.FC = () => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
+  const navigation = useNavigation();
   const { myPayments, pagination, loading } = useAppSelector((state: any) => state.payment);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -119,6 +122,21 @@ const PaymentHistory: React.FC = () => {
   useEffect(() => {
     fetchPayments();
   }, [fetchPayments]);
+
+  // Override back button behavior to go to Home instead of booking steps
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        // Navigate to Home instead of going back to booking steps
+        navigation.navigate('Home' as never);
+        return true; // Prevent default back behavior
+      };
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => subscription.remove();
+    }, [navigation])
+  );
 
   const handlePageChange = (page: number, size?: number) => {
     setCurrentPage(page);
