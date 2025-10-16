@@ -10,7 +10,7 @@ import {
   useTheme,
   ProgressBar,
   Portal,
-  Modal,  
+  Modal,
   Checkbox,
 } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../service/store';
@@ -235,10 +235,10 @@ const Step3ServiceSelectionScreen: React.FC<Step3ServiceSelectionScreenProps> = 
           <Text style={styles.expandButtonText}>
             {isExpanded ? 'Thu gọn' : 'Xem thêm'}
           </Text>
-          <Icon 
-            name={isExpanded ? "chevron-up" : "chevron-down"} 
-            size={16} 
-            color="#1890ff" 
+          <Icon
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={16}
+            color="#1890ff"
           />
         </TouchableOpacity>
       </View>
@@ -247,7 +247,7 @@ const Step3ServiceSelectionScreen: React.FC<Step3ServiceSelectionScreenProps> = 
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      
+
 
       {/* Search and Filter */}
       <View style={styles.searchSection}>
@@ -260,7 +260,7 @@ const Step3ServiceSelectionScreen: React.FC<Step3ServiceSelectionScreenProps> = 
           style={styles.searchInput}
           contentStyle={styles.searchInputContent}
         />
-        
+
         <TouchableOpacity
           style={styles.filterButton}
           onPress={() => setFilterOpen(true)}
@@ -327,7 +327,7 @@ const Step3ServiceSelectionScreen: React.FC<Step3ServiceSelectionScreenProps> = 
       </Card>
 
       {/* Navigation Buttons */}
-      <View style={styles.navigationContainer}>
+      <View style={[styles.navigationContainer, { paddingBottom: insets.bottom + 40 }]}>
         <Button
           mode="outlined"
           onPress={onPrev}
@@ -355,7 +355,7 @@ const Step3ServiceSelectionScreen: React.FC<Step3ServiceSelectionScreenProps> = 
           contentContainerStyle={styles.modalContent}
         >
           <Text style={styles.modalTitle}>Bộ lọc</Text>
-          
+
           <View style={styles.filterSection}>
             <Text style={styles.filterSectionTitle}>Danh mục</Text>
             <View style={styles.categoryContainer}>

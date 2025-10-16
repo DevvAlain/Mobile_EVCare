@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../types';
 import { Ionicons as Icon } from '@expo/vector-icons';
 import {
   Button,
@@ -20,6 +22,7 @@ const BookingScreen: React.FC = () => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { currentStep, selectedVehicle, selectedServiceCenter, selectedService } = useAppSelector((state) => state.booking);
 
   // Clear payment state when starting new booking
@@ -144,7 +147,23 @@ const BookingScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-     
+      {/* Header with quick access to booking history */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerTitle}>Đặt lịch bảo dưỡng</Text>
+            <Text style={styles.headerSubtitle}>Bắt đầu một lịch bảo dưỡng mới</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.homeButton}
+            onPress={() => navigation.navigate('BookingHistory')}
+          >
+            <Icon name="time-outline" size={16} color="white" />
+            <Text style={styles.homeButtonText}>Lịch sử đặt lịch</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
 
       {/* Progress Steps - Horizontal Layout */}
       <Card style={styles.stepsCard}>
@@ -209,7 +228,7 @@ const BookingScreen: React.FC = () => {
         {renderStepContent()}
       </View>
 
-      
+
     </View>
   );
 };

@@ -127,7 +127,7 @@ const Step1VehicleSelectionScreen: React.FC<Step1VehicleSelectionScreenProps> = 
         <View style={styles.fullScreenForm}>
           <View style={styles.formHeader}>
             <Text style={styles.formTitle}>Thông tin xe mới</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setShowCreateForm(false)}
             >
@@ -145,7 +145,7 @@ const Step1VehicleSelectionScreen: React.FC<Step1VehicleSelectionScreenProps> = 
 
       {/* Next Button - Only show when not creating vehicle */}
       {!showCreateForm && (
-        <View style={styles.nextButtonContainer}>
+        <View style={[styles.nextButtonContainer, { paddingBottom: insets.bottom + 40 }]}>
           <Button
             mode="contained"
             onPress={handleNext}
