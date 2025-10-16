@@ -217,14 +217,14 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
           <View style={styles.headerContent}>
             <View style={styles.headerIconWrapper}>
               <Icon name="flash-outline" size={20} color="#1890ff" />
-            </View> 
+            </View>
             <View style={styles.headerTextContainer}>
               <Text style={styles.headerTitle}>Đặt Lịch Nhanh Nhất</Text>
               <Text style={styles.headerSubtitle}>
                 <Text style={styles.highlightText}>Cọc 20%</Text> trước • <Text style={styles.highlightText}>80%</Text> sau
               </Text>
             </View>
-            <View style={styles.headerBadge}> 
+            <View style={styles.headerBadge}>
               <Text style={styles.headerBadgeText}>Nhanh Nhất</Text>
             </View>
           </View>
@@ -232,284 +232,284 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
-        {/* Booking Summary */}
-        <Card style={styles.summaryCard}>
-          <Card.Content>
-            <Text style={styles.summaryTitle}>Thông tin đặt lịch</Text>
-            <View style={styles.summaryContent}>
-              <View style={styles.summaryRow}>
-                <Icon name="car-outline" size={16} color="#1890ff" />
-                <Text style={styles.summaryLabel}>Xe:</Text>
-                <Text style={styles.summaryValue}>
-                  {selectedVehicle?.vehicleInfo.vehicleModel.brand} {selectedVehicle?.vehicleInfo.vehicleModel.modelName}
-                </Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Icon name="business-outline" size={16} color="#1890ff" />
-                <Text style={styles.summaryLabel}>Trung tâm:</Text>
-                <Text style={styles.summaryValue}>{selectedServiceCenter?.name}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Icon name="construct-outline" size={16} color="#1890ff" />
-                <Text style={styles.summaryLabel}>Dịch vụ:</Text>
-                <Text style={styles.summaryValue}>
-                  {isInspectionOnlyFromState ? 'Chỉ kiểm tra' : (selectedService?.name || 'N/A')}
-                </Text>
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
-
-        {/* Date Selection */}
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>Chọn ngày</Text>
-            <TouchableOpacity
-              style={styles.dateTimeButton}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Icon name="calendar-outline" size={20} color="#1890ff" />
-              <Text style={styles.dateTimeButtonText}>
-                {selectedDate ? dayjs(selectedDate).format('DD/MM/YYYY') : 'Chọn ngày'}
-              </Text>
-              <Icon name="chevron-forward-outline" size={16} color="#6b7280" />
-            </TouchableOpacity>
-          </Card.Content>
-        </Card>
-
-        {/* Time Selection */}
-        {selectedDate && (
-          <Card style={styles.sectionCard}>
+          {/* Booking Summary */}
+          <Card style={styles.summaryCard}>
             <Card.Content>
-              <Text style={styles.sectionTitle}>Chọn giờ đến</Text>
-              
-              {/* Time Selection Mode Toggle */}
-              <View style={styles.timeModeToggle}>
-                <TouchableOpacity
-                  style={[
-                    styles.timeModeButton,
-                    timeSelectionMode === 'preset' && styles.timeModeButtonActive
-                  ]}
-                  onPress={() => handleTimeModeChange('preset')}
-                >
-                  <Text style={[
-                    styles.timeModeButtonText,
-                    timeSelectionMode === 'preset' && styles.timeModeButtonTextActive
-                  ]}>
-                    Giờ có sẵn
+              <Text style={styles.summaryTitle}>Thông tin đặt lịch</Text>
+              <View style={styles.summaryContent}>
+                <View style={styles.summaryRow}>
+                  <Icon name="car-outline" size={16} color="#1890ff" />
+                  <Text style={styles.summaryLabel}>Xe:</Text>
+                  <Text style={styles.summaryValue}>
+                    {selectedVehicle?.vehicleInfo.vehicleModel.brand} {selectedVehicle?.vehicleInfo.vehicleModel.modelName}
                   </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.timeModeButton,
-                    timeSelectionMode === 'custom' && styles.timeModeButtonActive
-                  ]}
-                  onPress={() => handleTimeModeChange('custom')}
-                >
-                  <Text style={[
-                    styles.timeModeButtonText,
-                    timeSelectionMode === 'custom' && styles.timeModeButtonTextActive
-                  ]}>
-                    Tự chọn giờ
+                </View>
+                <View style={styles.summaryRow}>
+                  <Icon name="business-outline" size={16} color="#1890ff" />
+                  <Text style={styles.summaryLabel}>Trung tâm:</Text>
+                  <Text style={styles.summaryValue}>{selectedServiceCenter?.name}</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Icon name="construct-outline" size={16} color="#1890ff" />
+                  <Text style={styles.summaryLabel}>Dịch vụ:</Text>
+                  <Text style={styles.summaryValue}>
+                    {isInspectionOnlyFromState ? 'Chỉ kiểm tra' : (selectedService?.name || 'N/A')}
                   </Text>
-                </TouchableOpacity>
+                </View>
               </View>
-
-              {timeSelectionMode === 'preset' ? (
-                <View style={styles.timeDropdownContainer}>
-                  <TouchableOpacity
-                    style={styles.timeDropdownButton}
-                    onPress={() => setShowTimeDropdown(!showTimeDropdown)}
-                  >
-                    <Icon name="time-outline" size={20} color="#1890ff" />
-                    <Text style={styles.timeDropdownText}>
-                      {selectedTime ? formatTime12h(selectedTime) : 'Chọn giờ đến'}
-                    </Text>
-                    <Icon 
-                      name={showTimeDropdown ? "chevron-up-outline" : "chevron-down-outline"} 
-                      size={16} 
-                      color="#6b7280" 
-                    />
-                  </TouchableOpacity>
-                  
-                  {showTimeDropdown && (
-                    <View style={styles.timeDropdownList}>
-                      {timeSlots.map((time) => (
-                        <TouchableOpacity
-                          key={time}
-                          style={[
-                            styles.timeDropdownItem,
-                            selectedTime === time && styles.selectedTimeDropdownItem
-                          ]}
-                          onPress={() => handleTimeSelect(time)}
-                        >
-                          <Text style={[
-                            styles.timeDropdownItemText,
-                            selectedTime === time && styles.selectedTimeDropdownItemText
-                          ]}>
-                            {formatTime12h(time)}
-                          </Text>
-                          {selectedTime === time && (
-                            <Icon name="checkmark" size={16} color="#1890ff" />
-                          )}
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              ) : (
-                <View style={styles.customTimeContainer}>
-                  <TextInput
-                    mode="outlined"
-                    label="Giờ đến (VD: 14:30)"
-                    placeholder="Nhập giờ bạn muốn đến"
-                    value={customTime}
-                    onChangeText={handleCustomTimeChange}
-                    style={styles.customTimeInput}
-                    keyboardType="numeric"
-                  />
-                  <Text style={styles.customTimeNote}>
-                    * Giờ đến sẽ được xác nhận lại với trung tâm
-                  </Text>
-                </View>
-              )}
             </Card.Content>
           </Card>
-        )}
 
-        {/* Service Description */}
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>Mô tả dịch vụ (tùy chọn)</Text>
-            <TextInput
-              mode="outlined"
-              placeholder="Mô tả chi tiết về vấn đề hoặc yêu cầu của bạn..."
-              value={serviceDescription}
-              onChangeText={setServiceDescription}
-              multiline
-              numberOfLines={4}
-              style={styles.descriptionInput}
-            />
-          </Card.Content>
-        </Card>
-
-        {/* Payment Preference */}
-        <Card style={styles.sectionCard}>
-          <Card.Content>
-            <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
-            <View style={styles.paymentOptions}>
+          {/* Date Selection */}
+          <Card style={styles.sectionCard}>
+            <Card.Content>
+              <Text style={styles.sectionTitle}>Chọn ngày</Text>
               <TouchableOpacity
-                style={styles.paymentOption}
-                onPress={() => setPaymentPreference('offline')}
+                style={styles.dateTimeButton}
+                onPress={() => setShowDatePicker(true)}
               >
-                <RadioButton
-                  value="offline"
-                  status={paymentPreference === 'offline' ? 'checked' : 'unchecked'}
+                <Icon name="calendar-outline" size={20} color="#1890ff" />
+                <Text style={styles.dateTimeButtonText}>
+                  {selectedDate ? dayjs(selectedDate).format('DD/MM/YYYY') : 'Chọn ngày'}
+                </Text>
+                <Icon name="chevron-forward-outline" size={16} color="#6b7280" />
+              </TouchableOpacity>
+            </Card.Content>
+          </Card>
+
+          {/* Time Selection */}
+          {selectedDate && (
+            <Card style={styles.sectionCard}>
+              <Card.Content>
+                <Text style={styles.sectionTitle}>Chọn giờ đến</Text>
+
+                {/* Time Selection Mode Toggle */}
+                <View style={styles.timeModeToggle}>
+                  <TouchableOpacity
+                    style={[
+                      styles.timeModeButton,
+                      timeSelectionMode === 'preset' && styles.timeModeButtonActive
+                    ]}
+                    onPress={() => handleTimeModeChange('preset')}
+                  >
+                    <Text style={[
+                      styles.timeModeButtonText,
+                      timeSelectionMode === 'preset' && styles.timeModeButtonTextActive
+                    ]}>
+                      Giờ có sẵn
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.timeModeButton,
+                      timeSelectionMode === 'custom' && styles.timeModeButtonActive
+                    ]}
+                    onPress={() => handleTimeModeChange('custom')}
+                  >
+                    <Text style={[
+                      styles.timeModeButtonText,
+                      timeSelectionMode === 'custom' && styles.timeModeButtonTextActive
+                    ]}>
+                      Tự chọn giờ
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {timeSelectionMode === 'preset' ? (
+                  <View style={styles.timeDropdownContainer}>
+                    <TouchableOpacity
+                      style={styles.timeDropdownButton}
+                      onPress={() => setShowTimeDropdown(!showTimeDropdown)}
+                    >
+                      <Icon name="time-outline" size={20} color="#1890ff" />
+                      <Text style={styles.timeDropdownText}>
+                        {selectedTime ? formatTime12h(selectedTime) : 'Chọn giờ đến'}
+                      </Text>
+                      <Icon
+                        name={showTimeDropdown ? "chevron-up-outline" : "chevron-down-outline"}
+                        size={16}
+                        color="#6b7280"
+                      />
+                    </TouchableOpacity>
+
+                    {showTimeDropdown && (
+                      <View style={styles.timeDropdownList}>
+                        {timeSlots.map((time) => (
+                          <TouchableOpacity
+                            key={time}
+                            style={[
+                              styles.timeDropdownItem,
+                              selectedTime === time && styles.selectedTimeDropdownItem
+                            ]}
+                            onPress={() => handleTimeSelect(time)}
+                          >
+                            <Text style={[
+                              styles.timeDropdownItemText,
+                              selectedTime === time && styles.selectedTimeDropdownItemText
+                            ]}>
+                              {formatTime12h(time)}
+                            </Text>
+                            {selectedTime === time && (
+                              <Icon name="checkmark" size={16} color="#1890ff" />
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.customTimeContainer}>
+                    <TextInput
+                      mode="outlined"
+                      label="Giờ đến (VD: 14:30)"
+                      placeholder="Nhập giờ bạn muốn đến"
+                      value={customTime}
+                      onChangeText={handleCustomTimeChange}
+                      style={styles.customTimeInput}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.customTimeNote}>
+                      * Giờ đến sẽ được xác nhận lại với trung tâm
+                    </Text>
+                  </View>
+                )}
+              </Card.Content>
+            </Card>
+          )}
+
+          {/* Service Description */}
+          <Card style={styles.sectionCard}>
+            <Card.Content>
+              <Text style={styles.sectionTitle}>Mô tả dịch vụ (tùy chọn)</Text>
+              <TextInput
+                mode="outlined"
+                placeholder="Mô tả chi tiết về vấn đề hoặc yêu cầu của bạn..."
+                value={serviceDescription}
+                onChangeText={setServiceDescription}
+                multiline
+                numberOfLines={4}
+                style={styles.descriptionInput}
+              />
+            </Card.Content>
+          </Card>
+
+          {/* Payment Preference */}
+          <Card style={styles.sectionCard}>
+            <Card.Content>
+              <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
+              <View style={styles.paymentOptions}>
+                <TouchableOpacity
+                  style={styles.paymentOption}
                   onPress={() => setPaymentPreference('offline')}
-                />
-                <View style={styles.paymentOptionContent}>
-                  <Text style={styles.paymentOptionTitle}>Thanh toán tại trung tâm</Text>
-                  <Text style={styles.paymentOptionDescription}>
-                    Thanh toán khi hoàn thành dịch vụ
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.paymentOption}
-                onPress={() => setPaymentPreference('online')}
-              >
-                <RadioButton
-                  value="online"
-                  status={paymentPreference === 'online' ? 'checked' : 'unchecked'}
-                  onPress={() => setPaymentPreference('online')}
-                />
-                <View style={styles.paymentOptionContent}>
-                  <Text style={styles.paymentOptionTitle}>Thanh toán online</Text>
-                  <Text style={styles.paymentOptionDescription}>
-                    Thanh toán trước qua ví điện tử
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </Card.Content>
-        </Card>
+                >
+                  <RadioButton
+                    value="offline"
+                    status={paymentPreference === 'offline' ? 'checked' : 'unchecked'}
+                    onPress={() => setPaymentPreference('offline')}
+                  />
+                  <View style={styles.paymentOptionContent}>
+                    <Text style={styles.paymentOptionTitle}>Thanh toán tại trung tâm</Text>
+                    <Text style={styles.paymentOptionDescription}>
+                      Thanh toán khi hoàn thành dịch vụ
+                    </Text>
+                  </View>
+                </TouchableOpacity>
 
-        {/* Create Booking Button */}
-        <View style={styles.createButtonContainer}>
+                <TouchableOpacity
+                  style={styles.paymentOption}
+                  onPress={() => setPaymentPreference('online')}
+                >
+                  <RadioButton
+                    value="online"
+                    status={paymentPreference === 'online' ? 'checked' : 'unchecked'}
+                    onPress={() => setPaymentPreference('online')}
+                  />
+                  <View style={styles.paymentOptionContent}>
+                    <Text style={styles.paymentOptionTitle}>Thanh toán online</Text>
+                    <Text style={styles.paymentOptionDescription}>
+                      Thanh toán trước qua ví điện tử
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </Card.Content>
+          </Card>
+
+          {/* Create Booking Button */}
+          <View style={[styles.createButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
+            <Button
+              mode="contained"
+              onPress={handleCreateBooking}
+              loading={createBookingLoading}
+              disabled={!selectedDate || (!selectedTime && !customTime)}
+              style={styles.createButton}
+              contentStyle={styles.createButtonContent}
+            >
+              Hoàn tất đặt lịch
+            </Button>
+          </View>
+        </ScrollView>
+
+        {/* Navigation */}
+        <View style={[styles.navigationContainer, { paddingBottom: insets.bottom + 16 }]}>
           <Button
-            mode="contained"
-            onPress={handleCreateBooking}
-            loading={createBookingLoading}
-            disabled={!selectedDate || (!selectedTime && !customTime)}
-            style={styles.createButton}
-            contentStyle={styles.createButtonContent}
+            mode="outlined"
+            onPress={onPrev}
+            style={styles.backButton}
+            contentStyle={styles.buttonContent}
           >
-            Hoàn tất đặt lịch
+            Quay lại
           </Button>
         </View>
-      </ScrollView>
 
-      {/* Navigation */}
-      <View style={styles.navigationContainer}>
-        <Button
-          mode="outlined"
-          onPress={onPrev}
-          style={styles.backButton}
-          contentStyle={styles.buttonContent}
-        >
-          Quay lại
-        </Button>
-      </View>
-
-      {/* Date Picker Modal */}
-      <Portal>
-        <Modal
-          visible={showDatePicker}
-          onDismiss={() => setShowDatePicker(false)}
-          contentContainerStyle={styles.modalContent}
-        >
-          <Text style={styles.modalTitle}>Chọn ngày</Text>
-          <DateTimePicker
-            value={selectedDate ? new Date(selectedDate) : new Date()}
-            mode="date"
-            display="default"
-            minimumDate={new Date()}
-            onChange={(event, date) => {
-              if (date) { 
-                handleDateSelect(date);
-              }
-            }}
-          />
-        </Modal>
-      </Portal>
-
-      {/* Payment Modal */}
-      {paymentModalVisible && bookingResponse && bookingResponse.data?.payment && (
-        <PaymentModal
-          visible={paymentModalVisible}
-          paymentData={bookingResponse.data.payment}
-          onPaymentSuccess={handlePaymentSuccess}
-          onCancel={() => {
-            setPaymentModalVisible(false);
-            // Khi hủy thanh toán, vẫn chuyển đến PaymentHistory để xem trạng thái
-            Alert.alert('Thông báo', 'Bạn có thể tiếp tục thanh toán sau từ trang lịch sử thanh toán.', [
-              {
-                text: 'OK',
-                onPress: () => {
-                  dispatch(resetBooking());
-                  // Reset navigation stack và chuyển đến PaymentHistory
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: 'PaymentHistory' as never }],
-                  });
+        {/* Date Picker Modal */}
+        <Portal>
+          <Modal
+            visible={showDatePicker}
+            onDismiss={() => setShowDatePicker(false)}
+            contentContainerStyle={styles.modalContent}
+          >
+            <Text style={styles.modalTitle}>Chọn ngày</Text>
+            <DateTimePicker
+              value={selectedDate ? new Date(selectedDate) : new Date()}
+              mode="date"
+              display="default"
+              minimumDate={new Date()}
+              onChange={(event, date) => {
+                if (date) {
+                  handleDateSelect(date);
                 }
-              }
-            ]);
-          }}
-          description={bookingResponse.data.payment.description || 'Thanh toán đặt lịch'}
-        />
-      )}
+              }}
+            />
+          </Modal>
+        </Portal>
+
+        {/* Payment Modal */}
+        {paymentModalVisible && bookingResponse && bookingResponse.data?.payment && (
+          <PaymentModal
+            visible={paymentModalVisible}
+            paymentData={bookingResponse.data.payment}
+            onPaymentSuccess={handlePaymentSuccess}
+            onCancel={() => {
+              setPaymentModalVisible(false);
+              // Khi hủy thanh toán, vẫn chuyển đến PaymentHistory để xem trạng thái
+              Alert.alert('Thông báo', 'Bạn có thể tiếp tục thanh toán sau từ trang lịch sử thanh toán.', [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    dispatch(resetBooking());
+                    // Reset navigation stack và chuyển đến PaymentHistory
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: 'PaymentHistory' as never }],
+                    });
+                  }
+                }
+              ]);
+            }}
+            description={bookingResponse.data.payment.description || 'Thanh toán đặt lịch'}
+          />
+        )}
       </View>
     </TouchableWithoutFeedback>
   );

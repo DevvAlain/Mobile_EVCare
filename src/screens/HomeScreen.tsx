@@ -13,8 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
-import Sidebar from '../components/Sidebar';
-import SidebarOverlay from '../components/SidebarOverlay';
+// Sidebar removed for mobile-like bottom tab UI
 import { RootState } from '../service/store';
 import { AppDispatch } from '../service/store';
 
@@ -24,7 +23,6 @@ const HomeScreen = () => {
   const navigation = useNavigation<any>();
   const dispatch = useDispatch<AppDispatch>();
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Animation values
@@ -79,7 +77,7 @@ const HomeScreen = () => {
       icon: '📅',
       color: '#10B981',
       delay: 200,
-      onPress: () => navigation.navigate('Booking'),
+      onPress: () => handleProtectedNavigate('Booking'),
     },
     {
       id: 3,
@@ -88,7 +86,7 @@ const HomeScreen = () => {
       icon: '📋',
       color: '#F59E0B',
       delay: 300,
-      onPress: () => navigation.navigate('BookingHistory'),
+      onPress: () => handleProtectedNavigate('BookingHistory'),
     },
     {
       id: 4,
@@ -97,7 +95,7 @@ const HomeScreen = () => {
       icon: '💳',
       color: '#8B5CF6',
       delay: 400,
-      onPress: () => navigation.navigate('PaymentHistory'),
+      onPress: () => handleProtectedNavigate('PaymentHistory'),
     },
   ];
 
@@ -108,7 +106,7 @@ const HomeScreen = () => {
       icon: '📍',
       color: '#3B82F6',
       delay: 0,
-      onPress: () => navigation.navigate('ServiceCenters'),
+      onPress: () => handleProtectedNavigate('ServiceCenters'),
     },
     {
       id: 2,
@@ -116,7 +114,7 @@ const HomeScreen = () => {
       icon: '🔧',
       color: '#10B981',
       delay: 100,
-      onPress: () => navigation.navigate('Booking'),
+      onPress: () => handleProtectedNavigate('Booking'),
     },
     {
       id: 3,
@@ -124,7 +122,7 @@ const HomeScreen = () => {
       icon: '📊',
       color: '#F59E0B',
       delay: 200,
-      onPress: () => navigation.navigate('BookingHistory'),
+      onPress: () => handleProtectedNavigate('BookingHistory'),
     },
     {
       id: 4,
@@ -132,11 +130,21 @@ const HomeScreen = () => {
       icon: '🚙',
       color: '#8B5CF6',
       delay: 300,
-      onPress: () => navigation.navigate('ManageVehicles'),
+      onPress: () => handleProtectedNavigate('ManageVehicles'),
     },
   ];
 
   const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
+  const handleProtectedNavigate = (routeName: string) => {
+    // Home is allowed for unauthenticated users, everything else should require login
+    if (!isAuthenticated) {
+      navigation.navigate('Auth', { screen: 'Login' });
+      return;
+    }
+
+    navigation.navigate(routeName);
+  };
 
   return (
     <>
@@ -164,14 +172,6 @@ const HomeScreen = () => {
           ]}
         >
           <View style={styles.headerContent}>
-            {/* Hamburger menu bên trái */}
-            <TouchableOpacity
-              style={styles.menuButton}
-              onPress={() => setSidebarOpen(true)}
-            >
-              <Text style={styles.menuIcon}>≡</Text>
-            </TouchableOpacity>
-
             {/* Title ở giữa */}
             <View style={styles.greetingContainer}>
               <Text style={styles.greeting}>Chào mừng</Text>
@@ -378,15 +378,13 @@ const HomeScreen = () => {
           <Text style={styles.finalCTASubtitle}>
             Trải nghiệm nền tảng toàn diện của EV CARE có thể tối ưu hóa hoạt động dịch vụ
           </Text>
-          <TouchableOpacity style={styles.finalCTAButton}>
+          <TouchableOpacity style={styles.finalCTAButton} onPress={() => navigation.navigate('Booking')}>
             <Text style={styles.finalCTAButtonText}>Đặt lịch hẹn ngay</Text>
             <Text style={styles.finalCTAArrow}>→</Text>
           </TouchableOpacity>
         </Animated.View>
       </Animated.ScrollView>
-      {/* Sidebar + overlay (mounted at root of this screen) */}
-      <SidebarOverlay isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* Global bottom tab is rendered by RootNavigator -> BottomTabBar */}
     </>
   );
 };
@@ -397,7 +395,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 110,
   },
   header: {
     backgroundColor: '#fff',
@@ -837,6 +835,39 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 44,
+  },
+  bottomTabContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 72,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e6e9ef',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingBottom: 8,
+    zIndex: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabIcon: {
+    fontSize: 20,
+  },
+  tabLabel: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
   },
 });
 

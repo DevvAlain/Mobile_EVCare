@@ -275,10 +275,10 @@ const Step2ServiceCenterSelectionScreen: React.FC<Step2ServiceCenterSelectionScr
           <Text style={styles.expandButtonText}>
             {isExpanded ? 'Thu gọn' : 'Xem thêm'}
           </Text>
-          <Icon 
-            name={isExpanded ? "chevron-up" : "chevron-down"} 
-            size={16} 
-            color="#1890ff" 
+          <Icon
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={16}
+            color="#1890ff"
           />
         </TouchableOpacity>
       </View>
@@ -287,7 +287,7 @@ const Step2ServiceCenterSelectionScreen: React.FC<Step2ServiceCenterSelectionScr
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-     
+
 
       {/* Search and Filter */}
       <View style={styles.searchSection}>
@@ -324,7 +324,7 @@ const Step2ServiceCenterSelectionScreen: React.FC<Step2ServiceCenterSelectionScr
       </View>
 
       {/* Navigation Buttons */}
-      <View style={styles.navigationContainer}>
+      <View style={[styles.navigationContainer, { paddingBottom: insets.bottom + 40 }]}>
         <Button
           mode="outlined"
           onPress={onPrev}
@@ -352,7 +352,7 @@ const Step2ServiceCenterSelectionScreen: React.FC<Step2ServiceCenterSelectionScr
           contentContainerStyle={styles.modalContent}
         >
           <Text style={styles.modalTitle}>Bộ lọc</Text>
-          
+
           <View style={styles.filterOptions}>
             <TouchableOpacity
               style={styles.filterOption}
@@ -364,7 +364,7 @@ const Step2ServiceCenterSelectionScreen: React.FC<Step2ServiceCenterSelectionScr
               />
               <Text style={styles.filterOptionText}>Tất cả</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.filterOption}
               onPress={() => setFilterSelection('nearby')}

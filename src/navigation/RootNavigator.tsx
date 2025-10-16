@@ -14,6 +14,9 @@ import { ForgotPasswordScreen } from "../screens/ForgotPasswordScreen";
 import BookingScreen from "../screens/BookingScreen";
 import BookingHistoryScreen from "../screens/BookingHistorySreen";
 import PaymentHistoryScreen from "../screens/Payment/PaymentHistorySreen";
+import ServiceCentersScreen from "../screens/ServiceCentersScreen";
+import ServiceCenterDetailScreen from "../screens/ServiceCenterDetailScreen";
+import BottomTabBar from "../components/BottomTabBar";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -61,28 +64,33 @@ const RootNavigator = () => {
 
             <Stack.Screen
               name="ServiceCenters"
-              component={HomeScreen}
+              component={ServiceCentersScreen}
               options={{ headerTitle: "Trung tâm dịch vụ" }}
+            />
+            <Stack.Screen
+              name="ServiceCenterDetail"
+              component={ServiceCenterDetailScreen}
+              options={{ headerTitle: "Chi tiết trung tâm" }}
             />
             <Stack.Screen
               name="Booking"
               component={BookingScreen}
-              options={{ headerTitle: "Đặt lịch" }}
+              options={{ headerTitle: "Đặt lịch", headerLeft: () => null }}
             />
             <Stack.Screen
               name="BookingHistory"
               component={BookingHistoryScreen}
-              options={{ headerTitle: "Lịch sử đặt lịch" }}
+              options={{ headerTitle: "Lịch sử đặt lịch", headerLeft: () => null }}
             />
             <Stack.Screen
               name="ManageVehicles"
               component={require("../screens/VehicleManagementScreen").default}
-              options={{ headerTitle: "Quản lý xe" }}
+              options={{ headerTitle: "Quản lý xe", headerLeft: () => null }}
             />
             <Stack.Screen
               name="PaymentHistory"
               component={PaymentHistoryScreen}
-              options={{ headerTitle: "Lịch sử thanh toán" }}
+              options={{ headerTitle: "Lịch sử thanh toán", headerLeft: () => null }}
             />
 
             {/* Auth stack */}
@@ -92,6 +100,8 @@ const RootNavigator = () => {
               options={{ headerShown: false }}
             />
           </Stack.Navigator>
+          {/* Global bottom tabs */}
+          <BottomTabBar />
         </NavigationContainer>
       </PaperProvider>
     </SafeAreaProvider>
