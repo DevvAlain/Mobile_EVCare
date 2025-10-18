@@ -93,6 +93,12 @@ const RootNavigator = () => {
               options={{ headerTitle: "Lịch sử thanh toán", headerLeft: () => null }}
             />
 
+            <Stack.Screen
+              name="Settings"
+              component={SettingsScreen}
+              options={{ headerTitle: "Cài đặt", headerLeft: () => null }}
+            />
+
             {/* Auth stack */}
             <Stack.Screen
               name="Auth"

@@ -186,210 +186,212 @@ const ProfileScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header với avatar và thông tin cơ bản */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handlePickAvatar} style={styles.avatarTouchable}>
-          {uploading ? (
-            <View style={styles.avatarContainer}>
-              <ActivityIndicator color="#fff" size="small" />
+    <View style={{ flex: 1 }}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+        {/* Header với avatar và thông tin cơ bản */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handlePickAvatar} style={styles.avatarTouchable}>
+            {uploading ? (
+              <View style={styles.avatarContainer}>
+                <ActivityIndicator color="#fff" size="small" />
+              </View>
+            ) : displayUser?.avatar ? (
+              <Image source={{ uri: displayUser.avatar }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarContainer}>
+                <Text style={styles.avatarText}>
+                  {displayUser?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                </Text>
+              </View>
+            )}
+            <View style={styles.cameraBadge}>
+              <Text style={styles.cameraIcon}>📷</Text>
             </View>
-          ) : displayUser?.avatar ? (
-            <Image source={{ uri: displayUser.avatar }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatarContainer}>
-              <Text style={styles.avatarText}>
-                {displayUser?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+          </TouchableOpacity>
+
+          <Text style={styles.userName}>{displayUser?.fullName || "Khách hàng"}</Text>
+
+          {displayUser?.username && (
+            <Text style={styles.userHandle}>@{displayUser.username}</Text>
+          )}
+
+          <View style={styles.metaContainer}>
+            <View style={[styles.roleBadge, { backgroundColor: getRoleColor(displayUser?.role) }]}>
+              <Text style={styles.roleText}>{getRoleText(displayUser?.role)}</Text>
+            </View>
+
+            <View style={styles.verificationBadge}>
+              <Text style={styles.verificationText}>
+                {displayUser?.isVerified ? '✅ Đã xác thực' : '❌ Chưa xác thực'}
               </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Thông tin liên hệ */}
+        <View style={styles.contactCard}>
+          <Text style={styles.cardTitle}>Thông tin liên hệ</Text>
+
+          <View style={styles.contactItem}>
+            <Text style={styles.contactIcon}>📧</Text>
+            <View style={styles.contactInfo}>
+              <Text style={styles.contactLabel}>Email</Text>
+              <Text style={styles.contactValue}>{displayUser?.email || 'Chưa có email'}</Text>
+            </View>
+          </View>
+
+          <View style={styles.contactItem}>
+            <Text style={styles.contactIcon}>📞</Text>
+            <View style={styles.contactInfo}>
+              <Text style={styles.contactLabel}>Số điện thoại</Text>
+              <Text style={styles.contactValue}>{displayUser?.phone || 'Chưa có số điện thoại'}</Text>
+            </View>
+          </View>
+
+          <View style={styles.contactItem}>
+            <Text style={styles.contactIcon}>📍</Text>
+            <View style={styles.contactInfo}>
+              <Text style={styles.contactLabel}>Địa chỉ</Text>
+              <Text style={styles.contactValue}>{displayUser?.address || 'Chưa có địa chỉ'}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Thông tin chi tiết */}
+        <View style={styles.detailsCard}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Thông tin chi tiết</Text>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('ChangePassword')}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>Đổi mật khẩu</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={isEditing ? handleCancel : handleEdit}
+                style={styles.primaryButton}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {isEditing ? 'Hủy' : 'Chỉnh sửa'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {!isEditing ? (
+            <View style={styles.detailsContent}>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Tên đăng nhập</Text>
+                <Text style={styles.detailValue}>{displayUser?.username || '-'}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Họ và tên</Text>
+                <Text style={styles.detailValue}>{displayUser?.fullName || '-'}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Vai trò</Text>
+                <Text style={styles.detailValue}>{getRoleText(displayUser?.role)}</Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.editForm}>
+              <TextInput
+                value={form.username}
+                onChangeText={(text) => setForm(prev => ({ ...prev, username: text }))}
+                placeholder="Tên đăng nhập"
+                style={styles.textInput}
+                placeholderTextColor="#94a3b8"
+              />
+
+              <TextInput
+                value={form.fullName}
+                onChangeText={(text) => setForm(prev => ({ ...prev, fullName: text }))}
+                placeholder="Họ và tên"
+                style={styles.textInput}
+                placeholderTextColor="#94a3b8"
+              />
+
+              <TextInput
+                value={form.phone}
+                onChangeText={(text) => setForm(prev => ({ ...prev, phone: text }))}
+                placeholder="Số điện thoại"
+                keyboardType="phone-pad"
+                style={styles.textInput}
+                placeholderTextColor="#94a3b8"
+              />
+
+              <TextInput
+                value={form.address}
+                onChangeText={(text) => setForm(prev => ({ ...prev, address: text }))}
+                placeholder="Địa chỉ"
+                style={[styles.textInput, styles.textArea]}
+                multiline
+                numberOfLines={3}
+                placeholderTextColor="#94a3b8"
+              />
+
+              <View style={styles.formActions}>
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
+                  onPress={handleCancel}
+                >
+                  <Text style={styles.cancelButtonText}>Hủy</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.button, styles.saveButton]}
+                  onPress={handleSave}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Lưu thay đổi</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           )}
-          <View style={styles.cameraBadge}>
-            <Text style={styles.cameraIcon}>📷</Text>
-          </View>
-        </TouchableOpacity>
-
-        <Text style={styles.userName}>{displayUser?.fullName || "Khách hàng"}</Text>
-
-        {displayUser?.username && (
-          <Text style={styles.userHandle}>@{displayUser.username}</Text>
-        )}
-
-        <View style={styles.metaContainer}>
-          <View style={[styles.roleBadge, { backgroundColor: getRoleColor(displayUser?.role) }]}>
-            <Text style={styles.roleText}>{getRoleText(displayUser?.role)}</Text>
-          </View>
-
-          <View style={styles.verificationBadge}>
-            <Text style={styles.verificationText}>
-              {displayUser?.isVerified ? '✅ Đã xác thực' : '❌ Chưa xác thực'}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Thông tin liên hệ */}
-      <View style={styles.contactCard}>
-        <Text style={styles.cardTitle}>Thông tin liên hệ</Text>
-
-        <View style={styles.contactItem}>
-          <Text style={styles.contactIcon}>📧</Text>
-          <View style={styles.contactInfo}>
-            <Text style={styles.contactLabel}>Email</Text>
-            <Text style={styles.contactValue}>{displayUser?.email || 'Chưa có email'}</Text>
-          </View>
         </View>
 
-        <View style={styles.contactItem}>
-          <Text style={styles.contactIcon}>📞</Text>
-          <View style={styles.contactInfo}>
-            <Text style={styles.contactLabel}>Số điện thoại</Text>
-            <Text style={styles.contactValue}>{displayUser?.phone || 'Chưa có số điện thoại'}</Text>
-          </View>
-        </View>
+        {/* Thông tin tài khoản */}
+        <View style={styles.infoCard}>
+          <Text style={styles.cardTitle}>Thông tin tài khoản</Text>
 
-        <View style={styles.contactItem}>
-          <Text style={styles.contactIcon}>📍</Text>
-          <View style={styles.contactInfo}>
-            <Text style={styles.contactLabel}>Địa chỉ</Text>
-            <Text style={styles.contactValue}>{displayUser?.address || 'Chưa có địa chỉ'}</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Thông tin chi tiết */}
-      <View style={styles.detailsCard}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Thông tin chi tiết</Text>
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('ChangePassword')}
-              style={styles.secondaryButton}
-            >
-              <Text style={styles.secondaryButtonText}>Đổi mật khẩu</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={isEditing ? handleCancel : handleEdit}
-              style={styles.primaryButton}
-            >
-              <Text style={styles.primaryButtonText}>
-                {isEditing ? 'Hủy' : 'Chỉnh sửa'}
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Ngày tạo tài khoản</Text>
+              <Text style={styles.infoValue}>
+                {displayUser?.createdAt
+                  ? new Date(displayUser.createdAt).toLocaleDateString('vi-VN')
+                  : 'Không có thông tin'
+                }
               </Text>
+            </View>
+
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Cập nhật lần cuối</Text>
+              <Text style={styles.infoValue}>
+                {displayUser?.updatedAt
+                  ? new Date(displayUser.updatedAt).toLocaleDateString('vi-VN')
+                  : 'Không có thông tin'
+                }
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Nút đăng xuất - đặt bên trong ScrollView nhưng có marginBottom lớn để không bị che */}
+        {isAuthenticated && (
+          <View style={[styles.logoutSection, { marginBottom: 140 }]}>
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <Text style={styles.logoutText}>Đăng xuất</Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        {!isEditing ? (
-          <View style={styles.detailsContent}>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Tên đăng nhập</Text>
-              <Text style={styles.detailValue}>{displayUser?.username || '-'}</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Họ và tên</Text>
-              <Text style={styles.detailValue}>{displayUser?.fullName || '-'}</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Vai trò</Text>
-              <Text style={styles.detailValue}>{getRoleText(displayUser?.role)}</Text>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.editForm}>
-            <TextInput
-              value={form.username}
-              onChangeText={(text) => setForm(prev => ({ ...prev, username: text }))}
-              placeholder="Tên đăng nhập"
-              style={styles.textInput}
-              placeholderTextColor="#94a3b8"
-            />
-
-            <TextInput
-              value={form.fullName}
-              onChangeText={(text) => setForm(prev => ({ ...prev, fullName: text }))}
-              placeholder="Họ và tên"
-              style={styles.textInput}
-              placeholderTextColor="#94a3b8"
-            />
-
-            <TextInput
-              value={form.phone}
-              onChangeText={(text) => setForm(prev => ({ ...prev, phone: text }))}
-              placeholder="Số điện thoại"
-              keyboardType="phone-pad"
-              style={styles.textInput}
-              placeholderTextColor="#94a3b8"
-            />
-
-            <TextInput
-              value={form.address}
-              onChangeText={(text) => setForm(prev => ({ ...prev, address: text }))}
-              placeholder="Địa chỉ"
-              style={[styles.textInput, styles.textArea]}
-              multiline
-              numberOfLines={3}
-              placeholderTextColor="#94a3b8"
-            />
-
-            <View style={styles.formActions}>
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={handleCancel}
-              >
-                <Text style={styles.cancelButtonText}>Hủy</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.button, styles.saveButton]}
-                onPress={handleSave}
-                disabled={saving}
-              >
-                {saving ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.saveButtonText}>Lưu thay đổi</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
         )}
-      </View>
-
-      {/* Thông tin tài khoản */}
-      <View style={styles.infoCard}>
-        <Text style={styles.cardTitle}>Thông tin tài khoản</Text>
-
-        <View style={styles.infoGrid}>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Ngày tạo tài khoản</Text>
-            <Text style={styles.infoValue}>
-              {displayUser?.createdAt
-                ? new Date(displayUser.createdAt).toLocaleDateString('vi-VN')
-                : 'Không có thông tin'
-              }
-            </Text>
-          </View>
-
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Cập nhật lần cuối</Text>
-            <Text style={styles.infoValue}>
-              {displayUser?.updatedAt
-                ? new Date(displayUser.updatedAt).toLocaleDateString('vi-VN')
-                : 'Không có thông tin'
-              }
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Nút đăng xuất */}
-      {isAuthenticated && (
-        <View style={styles.logoutSection}>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutText}>Đăng xuất</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -706,6 +708,17 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 18,
+    paddingHorizontal: 20,
+  },
+  logoutWrapper: {
+    backgroundColor: 'transparent',
+    borderRadius: 12,
   },
 });
 
