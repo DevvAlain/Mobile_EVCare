@@ -145,7 +145,7 @@ const Step1VehicleSelectionScreen: React.FC<Step1VehicleSelectionScreenProps> = 
 
       {/* Next Button - Only show when not creating vehicle */}
       {!showCreateForm && (
-        <View style={[styles.nextButtonContainer, { paddingBottom: insets.bottom + 40 }]}>
+        <View style={[styles.nextButtonContainer, { paddingBottom: insets.bottom + 60 }]}>
           <Button
             mode="contained"
             onPress={handleNext}

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { View, FlatList, RefreshControl, Platform, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Text, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRoute } from '@react-navigation/native';
 import { Ionicons as Icon } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import {
@@ -139,6 +140,31 @@ const BookingHistoryScreen: React.FC = () => {
   const animatedStatsHeight = useRef(new Animated.Value(1)).current;
 
   const [snack, setSnack] = useState<string>('');
+  const [snackType, setSnackType] = useState<'success' | 'error' | 'info' | 'warning'>('info');
+  const toastAnim = useRef(new Animated.Value(0)).current;
+  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setSnackType(type);
+    setSnack(message);
+  };
+  const route = useRoute<any>();
+  const navToastShownRef = useRef(false);
+  useEffect(() => {
+    if (navToastShownRef.current) return;
+    const p: any = route.params;
+    if (p && p.toastMessage) {
+      navToastShownRef.current = true;
+      showToast(String(p.toastMessage), p.toastType || 'info');
+    }
+  }, []);
+  useEffect(() => {
+    if (!snack) return;
+    Animated.timing(toastAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    const t = setTimeout(() => {
+      Animated.timing(toastAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => setSnack(''));
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [snack, toastAnim]);
+  
 
   // Details modal
   const [detail, setDetail] = useState<Booking | null>(null);
@@ -238,7 +264,7 @@ const BookingHistoryScreen: React.FC = () => {
       setDetail(res.data?.data);
       setDetailOpen(true);
     } catch (e: any) {
-      setSnack(e?.message || 'Không thể tải chi tiết lịch hẹn');
+      showToast(e?.message || 'Không thể tải chi tiết lịch hẹn', 'error');
     }
   };
 
@@ -262,14 +288,14 @@ const BookingHistoryScreen: React.FC = () => {
       setProgressLoading(true);
       const res = await axiosInstance.put(TECHNICIAN_PROGRESS_QUOTE_RESPONSE_ENDPOINT(progressData._id), { status, notes: quoteNotes });
       if (res.data?.success) {
-        setSnack(status === 'approved' ? 'Đã chấp nhận báo giá' : 'Đã từ chối báo giá');
+        showToast(status === 'approved' ? 'Đã chấp nhận báo giá' : 'Đã từ chối báo giá', 'success');
         setProgressOpen(false);
         await fetchList();
       } else {
-        setSnack('Cập nhật thất bại');
+        showToast('Cập nhật thất bại', 'error');
       }
     } catch {
-      setSnack('Cập nhật thất bại');
+      showToast('Cập nhật thất bại', 'error');
     } finally { setProgressLoading(false); }
   };
 
@@ -288,7 +314,7 @@ const BookingHistoryScreen: React.FC = () => {
       setShowTimeMenu(false);
       setRescheduleOpen(true);
     } catch (e: any) {
-      setSnack(e?.message || 'Không thể tải chi tiết');
+      showToast(e?.message || 'Không thể tải chi tiết', 'error');
     }
   };
 
@@ -303,7 +329,7 @@ const BookingHistoryScreen: React.FC = () => {
         const res = await axiosInstance.get(BOOKING_TIME_SLOTS_ENDPOINT(centerId, theDate));
         setSlots(res.data?.data?.availableSlots || []);
       } catch (e: any) {
-        setSnack(e?.message || 'Không thể tải khung giờ');
+        showToast(e?.message || 'Không thể tải khung giờ', 'error');
       } finally { setSlotLoading(false); }
     };
     loadSlots();
@@ -331,11 +357,11 @@ const BookingHistoryScreen: React.FC = () => {
         appointmentDate: dayjs(newDate).format('YYYY-MM-DD'), 
         appointmentTime: slot 
       }) as any);
-      setSnack('Đổi lịch thành công!');
+      showToast('Đổi lịch thành công!', 'success');
       setRescheduleOpen(false);
       await fetchList();
     } catch (e: any) {
-      setSnack(e?.message || 'Đổi lịch thất bại');
+      showToast(e?.message || 'Đổi lịch thất bại', 'error');
     }
   };
 
@@ -346,8 +372,9 @@ const BookingHistoryScreen: React.FC = () => {
     try {
       await dispatch(cancelBooking({ bookingId: cancelFor._id, reason: cancelReason }) as any);
       setCancelOpen(false);
+      showToast('Hủy lịch thành công', 'success');
       await fetchList();
-    } catch (e: any) { setSnack(e?.message || 'Hủy lịch thất bại'); }
+    } catch (e: any) { showToast(e?.message || 'Hủy lịch thất bại', 'error'); }
   };
 
   // Feedback flow
@@ -374,14 +401,14 @@ const BookingHistoryScreen: React.FC = () => {
       const payload = { overall: fbOverall, service: fbService, technician: fbTech, facility: fbFacility, comment: fbComment };
       const result: any = await dispatch(submitCustomerFeedback({ appointmentId: feedbackFor._id, feedback: payload }) as any);
       if (result.type?.endsWith('/fulfilled')) {
-        setSnack('Cảm ơn bạn đã đánh giá!');
+        showToast('Cảm ơn bạn đã đánh giá!', 'success');
         // cập nhật cục bộ
         await dispatch(updateBookingFeedback({ bookingId: feedbackFor._id, feedback: { ...payload, submittedAt: new Date().toISOString() } }));
         setFeedbackOpen(false);
       } else {
-        setSnack('Gửi đánh giá thất bại');
+        showToast('Gửi đánh giá thất bại', 'error');
       }
-    } catch (e: any) { setSnack(e?.message || 'Gửi đánh giá thất bại'); }
+    } catch (e: any) { showToast(e?.message || 'Gửi đánh giá thất bại', 'error'); }
   };
 
   const renderStatusChip = (status: string) => {
@@ -439,7 +466,7 @@ const BookingHistoryScreen: React.FC = () => {
             <Icon name="time-outline" size={18} color="#52c41a" />
             <View style={styles.timeInfo}>
               <Text style={styles.timeText}>
-                {formatTime12h(item.appointmentTime?.startTime || '')} - {formatTime12h(item.appointmentTime?.endTime || '')}
+                {formatTime12h(item.appointmentTime?.startTime || '')} 
               </Text>
             </View>
           </View>
@@ -901,7 +928,7 @@ const BookingHistoryScreen: React.FC = () => {
           </View>
           {!!newDate && (
             <View style={{ marginBottom: 20 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                 <Icon name="time-outline" size={20} color="#1890ff" />
                 <Text style={{ 
                   fontSize: 16, 
@@ -909,7 +936,7 @@ const BookingHistoryScreen: React.FC = () => {
                   color: '#1f2937',
                   marginLeft: 8
                 }}>
-                  Chọn khung giờ
+                   Chọn giờ đến
                 </Text>
               </View>
               
@@ -958,26 +985,26 @@ const BookingHistoryScreen: React.FC = () => {
                           onPress={() => setShowTimeMenu(true)}
                         >
                           <View style={{ flex: 1 }}>
-                            <Text style={{ 
-                              color: slot ? '#1890ff' : '#6b7280',
-                              fontSize: 16,
-                              fontWeight: slot ? '600' : '400'
-                            }}>
-                              {slot ? 
-                                slots.find(s => s.startTime === slot) ? 
-                                  `${formatTime12h(slots.find(s => s.startTime === slot)!.startTime)} - ${formatTime12h(slots.find(s => s.startTime === slot)!.endTime)}` :
-                                  'Chọn khung giờ'
-                                : 'Chọn khung giờ'
-                              }
-                            </Text>
+                             <Text style={{ 
+                               color: slot ? '#1890ff' : '#6b7280',
+                               fontSize: 16,
+                               fontWeight: slot ? '600' : '400'
+                             }}>
+                               {slot ? 
+                                 slots.find(s => s.startTime === slot) ? 
+                                   `${formatTime12h(slots.find(s => s.startTime === slot)!.startTime)}` :
+                                   'Chọn giờ đến'
+                                 : 'Chọn giờ đến'
+                               }
+                             </Text>
                             {!slot && (
-                              <Text style={{ 
-                                color: '#9ca3af',
-                                fontSize: 12,
-                                marginTop: 2
-                              }}>
-                                Tap để xem các khung giờ có sẵn
-                              </Text>
+                               <Text style={{ 
+                                 color: '#9ca3af',
+                                 fontSize: 12,
+                                 marginTop: 2
+                               }}>
+                                 Tap để xem các giờ đến có sẵn
+                               </Text>
                             )}
                           </View>
                           <View style={{
@@ -994,14 +1021,14 @@ const BookingHistoryScreen: React.FC = () => {
                         </TouchableOpacity>
                       }
                     >
-                      {slots.map((s) => (
+                       {slots.map((s) => (
                         <Menu.Item
                           key={`${s.startTime}-${s.endTime}`}
                           onPress={() => {
                             setSlot(s.startTime);
                             setShowTimeMenu(false);
                           }}
-                          title={`${formatTime12h(s.startTime)} - ${formatTime12h(s.endTime)}`}
+                           title={`${formatTime12h(s.startTime)}`}
                           style={{
                             backgroundColor: slot === s.startTime ? '#f0f9ff' : 'transparent'
                           }}
@@ -1233,9 +1260,29 @@ const BookingHistoryScreen: React.FC = () => {
         </Modal>
       </Portal>
 
-      <Snackbar visible={!!snack} onDismiss={() => setSnack('')}>
-        {snack}
-      </Snackbar>
+      <Portal>
+        {snack ? (() => {
+          const meta = {
+            success: { bg: '#ECFDF5', text: '#065F46', border: '#10B981', icon: 'checkmark-circle-outline' },
+            error: { bg: '#FEF2F2', text: '#991B1B', border: '#EF4444', icon: 'alert-circle-outline' },
+            info: { bg: '#EFF6FF', text: '#1E40AF', border: '#3B82F6', icon: 'information-circle-outline' },
+            warning: { bg: '#FFFBEB', text: '#92400E', border: '#F59E0B', icon: 'warning-outline' },
+          }[snackType];
+          return (
+            <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 9999 }}>
+              <Animated.View style={{ transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [-30, Math.max(insets.top, 8) ] }) }], opacity: toastAnim, paddingHorizontal: 16, paddingTop: 8 }}>
+                <TouchableOpacity onPress={() => setSnack('')} activeOpacity={0.95}>
+                  <View style={{ backgroundColor: meta.bg, borderLeftWidth: 4, borderLeftColor: meta.border, padding: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4 }}>
+                    <Icon name={meta.icon as any} size={18} color={meta.border} />
+                    <Text style={{ color: meta.text, flex: 1 }}>{snack}</Text>
+                    <Icon name="close" size={16} color={meta.text} />
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+          );
+        })() : null}
+      </Portal>
     </View>
   );
 };
