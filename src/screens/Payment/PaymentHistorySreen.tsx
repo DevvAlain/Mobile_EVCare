@@ -37,7 +37,7 @@ import { formatCurrencyVND } from '../../utils/paymentUtils';
 import { PaymentStatus as PaymentStatusType, Payment } from '../../types/payment';
 import { PAYMENT_STATUS_ENDPOINT } from '../../service/constants/apiConfig';
 import { axiosInstance } from '../../service/constants/axiosConfig';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import dayjs from 'dayjs';
 
 const { width } = Dimensions.get('window');
@@ -48,6 +48,7 @@ const PaymentHistory: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
   const { myPayments, pagination, loading } = useAppSelector((state: any) => state.payment);
+  const route = useRoute<any>();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -73,6 +74,32 @@ const PaymentHistory: React.FC = () => {
   const [detailLoading, setDetailLoading] = useState(false);
 
   const [snack, setSnack] = useState<string>('');
+  const [snackType, setSnackType] = useState<'success' | 'error' | 'info' | 'warning'>('info');
+  const toastAnim = useRef(new Animated.Value(0)).current;
+  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setSnackType(type);
+    setSnack(message);
+  };
+
+  useEffect(() => {
+    if (!snack) return;
+    Animated.timing(toastAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    const t = setTimeout(() => {
+      Animated.timing(toastAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => setSnack(''));
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [snack, toastAnim]);
+
+  // Show toast if navigated with params (one-time without mutating params)
+  const navToastShownRef = useRef(false);
+  useEffect(() => {
+    if (navToastShownRef.current) return;
+    const p: any = route.params;
+    if (p && p.toastMessage) {
+      navToastShownRef.current = true;
+      showToast(String(p.toastMessage), p.toastType || 'info');
+    }
+  }, []);
 
   const fetchPayments = useCallback(() => {
     const params: Record<string, string | number> = {
@@ -339,6 +366,25 @@ const PaymentHistory: React.FC = () => {
 
   return (
     <View style={[styles.container, { paddingTop: Math.max(insets.top - 30, 0) }]}>
+      {/* Top toast */}
+      {snack ? (() => {
+        const meta = {
+          success: { bg: '#ECFDF5', text: '#065F46', border: '#10B981', icon: 'checkmark-circle-outline' },
+          error: { bg: '#FEF2F2', text: '#991B1B', border: '#EF4444', icon: 'alert-circle-outline' },
+          info: { bg: '#EFF6FF', text: '#1E40AF', border: '#3B82F6', icon: 'information-circle-outline' },
+          warning: { bg: '#FFFBEB', text: '#92400E', border: '#F59E0B', icon: 'warning-outline' },
+        }[snackType];
+        return (
+          <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 9999 }}>
+            <Animated.View style={{ transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [-40, Math.max(insets.top, 8) ] }) }], opacity: toastAnim, paddingHorizontal: 16, paddingTop: 8 }}>
+              <View style={{ backgroundColor: meta.bg, borderLeftWidth: 4, borderLeftColor: meta.border, padding: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Icon name={meta.icon as any} size={18} color={meta.border} />
+                <Text style={{ color: meta.text, flex: 1 }}>{snack}</Text>
+              </View>
+            </Animated.View>
+          </View>
+        );
+      })() : null}
       {/* Collapsible Filters */}
       <View style={styles.filtersContainer}>
         <TouchableOpacity

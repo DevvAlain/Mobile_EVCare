@@ -148,21 +148,7 @@ const BookingScreen: React.FC = () => {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header with quick access to booking history */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
-            <Text style={styles.headerTitle}>Đặt lịch bảo dưỡng</Text>
-            <Text style={styles.headerSubtitle}>Bắt đầu một lịch bảo dưỡng mới</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.homeButton}
-            onPress={() => navigation.navigate('BookingHistory')}
-          >
-            <Icon name="time-outline" size={16} color="white" />
-            <Text style={styles.homeButtonText}>Lịch sử đặt lịch</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      
 
 
       {/* Progress Steps - Horizontal Layout */}

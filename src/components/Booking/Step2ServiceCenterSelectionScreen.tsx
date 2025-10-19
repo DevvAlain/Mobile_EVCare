@@ -324,7 +324,7 @@ const Step2ServiceCenterSelectionScreen: React.FC<Step2ServiceCenterSelectionScr
       </View>
 
       {/* Navigation Buttons */}
-      <View style={[styles.navigationContainer, { paddingBottom: insets.bottom + 40 }]}>
+      <View style={[styles.navigationContainer, { paddingBottom: insets.bottom + 60 }]}>
         <Button
           mode="outlined"
           onPress={onPrev}

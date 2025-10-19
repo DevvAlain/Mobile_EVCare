@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, Text, Alert, TouchableWithoutFeedback } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, ScrollView, StyleSheet, TouchableOpacity, Text, Alert, TouchableWithoutFeedback, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons as Icon } from '@expo/vector-icons';
 import {
@@ -51,19 +51,40 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
   const [paymentPreference, setPaymentPreference] = useState<'online' | 'offline'>('offline');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+  const [activeTimeDropdown, setActiveTimeDropdown] = useState<'hour' | 'minute' | null>(null);
+  const [selectedHour, setSelectedHour] = useState<string>('');
+  const [selectedMinute, setSelectedMinute] = useState<string>('');
   const [timeSelectionMode, setTimeSelectionMode] = useState<'preset' | 'custom'>('preset');
 
   // Payment modal state
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [bookingResponse, setBookingResponse] = useState<any>(null);
+  const [snack, setSnack] = useState<string>('');
+  const [snackType, setSnackType] = useState<'success' | 'error' | 'info' | 'warning'>('info');
+  const [snackVisible, setSnackVisible] = useState(false);
+  const toastAnim = React.useRef(new Animated.Value(0)).current;
+  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setSnackType(type);
+    setSnack(message);
+    setSnackVisible(true);
+  };
 
-  // Predefined time slots
-  const timeSlots = [
-    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
-    '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
-    '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
-    '17:00', '17:30', '18:00', '18:30', '19:00', '19:30'
-  ];
+  useEffect(() => {
+    if (!snackVisible) return;
+    Animated.timing(toastAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    const t = setTimeout(() => {
+      Animated.timing(toastAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => setSnackVisible(false));
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [snackVisible, toastAnim]);
+
+  // Time dropdown overlay (Portal) positioning
+  const timeButtonRef = useRef<any>(null);
+  const [timeAnchor, setTimeAnchor] = useState<{ x: number; y: number; width: number; height: number }>({ x: 0, y: 0, width: 0, height: 0 });
+
+  // Hour/Minute sources
+  const hourItems = Array.from({ length: 24 }, (_, i) => String(i + 1).padStart(2, '0'));
+  const minuteItems = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
 
 
   // Update booking data when form changes
@@ -97,6 +118,26 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
     setSelectedTime(time);
     setCustomTime('');
     setShowTimeDropdown(false);
+    setActiveTimeDropdown(null);
+  };
+
+  const handlePickHour = (hour: string) => {
+    setSelectedHour(hour);
+    const minute = selectedMinute || '00';
+    const final = `${hour}:${minute}`;
+    setSelectedTime(final);
+    setCustomTime('');
+    setActiveTimeDropdown('minute');
+  };
+
+  const handlePickMinute = (minute: string) => {
+    setSelectedMinute(minute);
+    const hour = selectedHour || '01';
+    const final = `${hour}:${minute}`;
+    setSelectedTime(final);
+    setCustomTime('');
+    setShowTimeDropdown(false);
+    setActiveTimeDropdown(null);
   };
 
   const handleCustomTimeChange = (time: string) => {
@@ -124,12 +165,12 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
   const handleCreateBooking = async () => {
     const finalTime = timeSelectionMode === 'custom' ? customTime : selectedTime;
     if (!selectedDate || !finalTime) {
-      Alert.alert('Lỗi', 'Vui lòng chọn ngày và giờ');
+      showToast('Vui lòng chọn ngày và giờ', 'warning');
       return;
     }
 
     if (!selectedServiceCenter) {
-      Alert.alert('Lỗi', 'Không tìm thấy trung tâm dịch vụ');
+      showToast('Không tìm thấy trung tâm dịch vụ', 'error');
       return;
     }
 
@@ -156,62 +197,48 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
           setPaymentModalVisible(true);
         } else if (paymentPreference === 'online' && !result.data.requiresPayment) {
           // Chọn thanh toán online nhưng không cần thanh toán -> chuyển đến PaymentHistory
-          Alert.alert('Thành công', 'Đặt lịch thành công!', [
-            {
-              text: 'OK',
-              onPress: () => {
-                dispatch(resetBooking());
-                // Reset navigation stack và chuyển đến PaymentHistory
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'PaymentHistory' as never }],
-                });
-              }
-            }
-          ]);
+          dispatch(resetBooking());
+          navigation.reset({ index: 0, routes: [{ name: 'PaymentHistory' as never, params: { toastMessage: 'Đặt lịch thành công!', toastType: 'success' } as never }] });
         } else {
-          // Chọn thanh toán offline -> chuyển đến PaymentHistory
-          Alert.alert('Thành công', 'Đặt lịch thành công!', [
-            {
-              text: 'OK',
-              onPress: () => {
-                dispatch(resetBooking());
-                // Reset navigation stack và chuyển đến PaymentHistory
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'PaymentHistory' as never }],
-                });
-              }
-            }
-          ]);
+          // Thanh toán trực tiếp tại trung tâm -> chuyển đến BookingHistory
+          dispatch(resetBooking());
+          navigation.reset({ index: 0, routes: [{ name: 'BookingHistory' as never, params: { toastMessage: 'Đặt lịch thành công!', toastType: 'success' } as never }] });
         }
       }
     } catch (error: any) {
-      Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra khi đặt lịch');
+      showToast(error.message || 'Có lỗi xảy ra khi đặt lịch', 'error');
     }
   };
 
   const handlePaymentSuccess = () => {
     setPaymentModalVisible(false);
-    Alert.alert('Thành công', 'Thanh toán thành công! Đặt lịch hoàn tất.', [
-      {
-        text: 'OK',
-        onPress: () => {
-          dispatch(resetBooking());
-          // Reset navigation stack và chuyển đến PaymentHistory
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'PaymentHistory' as never }],
-          });
-        }
-      }
-    ]);
+    dispatch(resetBooking());
+    navigation.reset({ index: 0, routes: [{ name: 'PaymentHistory' as never, params: { toastMessage: 'Đặt lịch thành công!', toastType: 'success' } as never }] });
   };
 
 
   return (
     <TouchableWithoutFeedback onPress={() => setShowTimeDropdown(false)}>
       <View style={[styles.container, { paddingTop: insets.top }]}>
+        {/* Top Toast (same style as BookingHistory) */}
+        {snackVisible ? (() => {
+          const meta = {
+            success: { bg: '#ECFDF5', text: '#065F46', border: '#10B981', icon: 'checkmark-circle-outline' },
+            error: { bg: '#FEF2F2', text: '#991B1B', border: '#EF4444', icon: 'alert-circle-outline' },
+            info: { bg: '#EFF6FF', text: '#1E40AF', border: '#3B82F6', icon: 'information-circle-outline' },
+            warning: { bg: '#FFFBEB', text: '#92400E', border: '#F59E0B', icon: 'warning-outline' },
+          }[snackType];
+          return (
+            <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 9999 }}>
+              <Animated.View style={{ transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [-40, Math.max(insets.top, 8) ] }) }], opacity: toastAnim, paddingHorizontal: 16, paddingTop: 8 }}>
+                <View style={{ backgroundColor: meta.bg, borderLeftWidth: 4, borderLeftColor: meta.border, padding: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4 }}>
+                  <Icon name={meta.icon as any} size={18} color={meta.border} />
+                  <Text style={{ color: meta.text, flex: 1 }}>{snack}</Text>
+                </View>
+              </Animated.View>
+            </View>
+          );
+        })() : null}
         {/* Sticky Header with Payment Info */}
         <View style={[styles.headerContainer, styles.stickyHeader]}>
           <View style={styles.headerContent}>
@@ -317,45 +344,59 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
 
                 {timeSelectionMode === 'preset' ? (
                   <View style={styles.timeDropdownContainer}>
-                    <TouchableOpacity
-                      style={styles.timeDropdownButton}
-                      onPress={() => setShowTimeDropdown(!showTimeDropdown)}
-                    >
-                      <Icon name="time-outline" size={20} color="#1890ff" />
-                      <Text style={styles.timeDropdownText}>
-                        {selectedTime ? formatTime12h(selectedTime) : 'Chọn giờ đến'}
-                      </Text>
-                      <Icon
-                        name={showTimeDropdown ? "chevron-up-outline" : "chevron-down-outline"}
-                        size={16}
-                        color="#6b7280"
-                      />
-                    </TouchableOpacity>
-
-                    {showTimeDropdown && (
-                      <View style={styles.timeDropdownList}>
-                        {timeSlots.map((time) => (
-                          <TouchableOpacity
-                            key={time}
-                            style={[
-                              styles.timeDropdownItem,
-                              selectedTime === time && styles.selectedTimeDropdownItem
-                            ]}
-                            onPress={() => handleTimeSelect(time)}
-                          >
-                            <Text style={[
-                              styles.timeDropdownItemText,
-                              selectedTime === time && styles.selectedTimeDropdownItemText
-                            ]}>
-                              {formatTime12h(time)}
-                            </Text>
-                            {selectedTime === time && (
-                              <Icon name="checkmark" size={16} color="#1890ff" />
-                            )}
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
+                    <View style={styles.timeSelectorsRow}>
+                      <TouchableOpacity
+                        ref={timeButtonRef}
+                        style={styles.timeUnitButton}
+                        onPress={() => {
+                          if (timeButtonRef.current && (timeButtonRef.current as any).measureInWindow) {
+                            (timeButtonRef.current as any).measureInWindow((x: number, y: number, width: number, height: number) => {
+                              setTimeAnchor({ x, y, width, height });
+                              setActiveTimeDropdown('hour');
+                              setShowTimeDropdown(true);
+                            });
+                          } else {
+                            setActiveTimeDropdown('hour');
+                            setShowTimeDropdown(true);
+                          }
+                        }}
+                      >
+                        <Icon name="time-outline" size={20} color="#1890ff" />
+                        <Text style={styles.timeDropdownText}>
+                          {selectedHour || 'Giờ (01-24)'}
+                        </Text>
+                        <Icon
+                          name={showTimeDropdown && activeTimeDropdown === 'hour' ? "chevron-up-outline" : "chevron-down-outline"}
+                          size={16}
+                          color="#6b7280"
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.timeUnitButton}
+                        onPress={() => {
+                          if (timeButtonRef.current && (timeButtonRef.current as any).measureInWindow) {
+                            (timeButtonRef.current as any).measureInWindow((x: number, y: number, width: number, height: number) => {
+                              setTimeAnchor({ x, y, width, height });
+                              setActiveTimeDropdown('minute');
+                              setShowTimeDropdown(true);
+                            });
+                          } else {
+                            setActiveTimeDropdown('minute');
+                            setShowTimeDropdown(true);
+                          }
+                        }}
+                      >
+                        <Icon name="time-outline" size={20} color="#1890ff" />
+                        <Text style={styles.timeDropdownText}>
+                          {selectedMinute || 'Phút (00-59)'}
+                        </Text>
+                        <Icon
+                          name={showTimeDropdown && activeTimeDropdown === 'minute' ? "chevron-up-outline" : "chevron-down-outline"}
+                          size={16}
+                          color="#6b7280"
+                        />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 ) : (
                   <View style={styles.customTimeContainer}>
@@ -435,23 +476,12 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
             </Card.Content>
           </Card>
 
-          {/* Create Booking Button */}
-          <View style={[styles.createButtonContainer, { paddingBottom: insets.bottom + 16 }]}>
-            <Button
-              mode="contained"
-              onPress={handleCreateBooking}
-              loading={createBookingLoading}
-              disabled={!selectedDate || (!selectedTime && !customTime)}
-              style={styles.createButton}
-              contentStyle={styles.createButtonContent}
-            >
-              Hoàn tất đặt lịch
-            </Button>
-          </View>
+          {/* Spacer to avoid content under bottom actions */}
+          <View style={{ height: insets.bottom + 100 }} />
         </ScrollView>
 
         {/* Navigation */}
-        <View style={[styles.navigationContainer, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.navigationContainer, { paddingBottom: insets.bottom + 60 }]}>
           <Button
             mode="outlined"
             onPress={onPrev}
@@ -460,10 +490,54 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
           >
             Quay lại
           </Button>
+          <Button
+            mode="contained"
+            onPress={handleCreateBooking}
+            loading={createBookingLoading}
+            disabled={!selectedDate || (!selectedTime && !customTime)}
+            style={styles.createButton}
+            contentStyle={styles.buttonContent}
+          >
+            Hoàn tất đặt lịch
+          </Button>
         </View>
 
         {/* Date Picker Modal */}
         <Portal>
+          {/* Time Dropdown Overlay */}
+          {showTimeDropdown && (
+            <TouchableWithoutFeedback onPress={() => setShowTimeDropdown(false)}>
+              <View style={styles.overlayRoot}>
+                <View
+                  style={[
+                    styles.portalDropdown,
+                    {
+                      top: Math.max(timeAnchor.y + timeAnchor.height, 0),
+                      left: 16,
+                      right: 16,
+                    },
+                  ]}
+                >
+                  {(activeTimeDropdown === 'hour' ? hourItems : minuteItems).map((val) => {
+                    const isSelected = activeTimeDropdown === 'hour' ? selectedHour === val : selectedMinute === val;
+                    const onPress = activeTimeDropdown === 'hour' ? () => handlePickHour(val) : () => handlePickMinute(val);
+                    return (
+                      <TouchableOpacity
+                        key={val}
+                        style={[styles.timeDropdownItem, isSelected && styles.selectedTimeDropdownItem]}
+                        onPress={onPress}
+                      >
+                        <Text style={[styles.timeDropdownItemText, isSelected && styles.selectedTimeDropdownItemText]}>
+                          {val}
+                        </Text>
+                        {isSelected && <Icon name="checkmark" size={16} color="#1890ff" />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          )}
           <Modal
             visible={showDatePicker}
             onDismiss={() => setShowDatePicker(false)}
@@ -493,19 +567,8 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
             onCancel={() => {
               setPaymentModalVisible(false);
               // Khi hủy thanh toán, vẫn chuyển đến PaymentHistory để xem trạng thái
-              Alert.alert('Thông báo', 'Bạn có thể tiếp tục thanh toán sau từ trang lịch sử thanh toán.', [
-                {
-                  text: 'OK',
-                  onPress: () => {
-                    dispatch(resetBooking());
-                    // Reset navigation stack và chuyển đến PaymentHistory
-                    navigation.reset({
-                      index: 0,
-                      routes: [{ name: 'PaymentHistory' as never }],
-                    });
-                  }
-                }
-              ]);
+              dispatch(resetBooking());
+              navigation.reset({ index: 0, routes: [{ name: 'PaymentHistory' as never, params: { toastMessage: 'Bạn có thể tiếp tục thanh toán sau', toastType: 'info' } as never }] });
             }}
             description={bookingResponse.data.payment.description || 'Thanh toán đặt lịch'}
           />
@@ -668,23 +731,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
-  createButtonContainer: {
-    padding: 16,
-  },
-  createButton: {
-    backgroundColor: '#1890ff',
-  },
-  createButtonContent: {
-    paddingVertical: 12,
-  },
   navigationContainer: {
+    flexDirection: 'row',
     padding: 16,
     backgroundColor: 'white',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
+    gap: 12,
   },
   backButton: {
     flex: 1,
+  },
+  createButton: {
+    flex: 1,
+    backgroundColor: '#1890ff',
   },
   buttonContent: {
     paddingVertical: 8,
@@ -740,6 +800,21 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
+  timeSelectorsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  timeUnitButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 16,
+    gap: 12,
+  },
   timeDropdownText: {
     flex: 1,
     fontSize: 16,
@@ -763,6 +838,29 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  overlayRoot: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    zIndex: 4000,
+  },
+  portalDropdown: {
+    position: 'absolute',
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    maxHeight: 260,
+    overflow: 'hidden',
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
   },
   timeDropdownItem: {
     flexDirection: 'row',
