@@ -11,9 +11,9 @@ import {
   ActivityIndicator,
   StatusBar,
   Dimensions,
-  Alert,
   Animated,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useDispatch, useSelector } from 'react-redux';
@@ -55,17 +55,17 @@ const ChangePasswordScreen = () => {
 
   const handleSubmit = async () => {
     if (!oldPassword || !newPassword || !confirm) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Vui lòng nhập đầy đủ thông tin' });
       return;
     }
 
     if (newPassword !== confirm) {
-      Alert.alert('Lỗi', 'Mật khẩu mới và xác nhận không khớp');
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Mật khẩu mới và xác nhận không khớp' });
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert('Lỗi', 'Mật khẩu mới phải có ít nhất 6 ký tự');
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Mật khẩu mới phải có ít nhất 6 ký tự' });
       return;
     }
 
@@ -75,24 +75,23 @@ const ChangePasswordScreen = () => {
         const payload: any = (result as any).payload;
         // Some backends return 200 with { success: false, message: '...' }
         if (payload && typeof payload.success !== 'undefined' && !payload.success) {
-          Alert.alert('Lỗi', payload.message || 'Đổi mật khẩu thất bại');
+          Toast.show({ type: 'error', text1: 'Lỗi', text2: payload.message || 'Đổi mật khẩu thất bại' });
         } else {
           // success
           setOldPassword('');
           setNewPassword('');
           setConfirm('');
-          Alert.alert('Thành công', payload?.message || 'Đổi mật khẩu thành công', [
-            { text: 'OK', onPress: () => navigation.goBack() },
-          ]);
+          Toast.show({ type: 'success', text1: payload?.message || 'Đổi mật khẩu thành công' });
+          navigation.goBack();
         }
       } else {
         const payload: any = (result as any).payload;
         const message = payload?.message || (result as any).error?.message || 'Đổi mật khẩu thất bại';
-        Alert.alert('Lỗi', message);
+        Toast.show({ type: 'error', text1: 'Lỗi', text2: message });
       }
     } catch (err) {
       console.error('Change password error', err);
-      Alert.alert('Lỗi', 'Đổi mật khẩu thất bại');
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Đổi mật khẩu thất bại' });
     }
   };
 

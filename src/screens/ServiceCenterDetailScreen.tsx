@@ -7,11 +7,11 @@ import {
     ScrollView,
     TouchableOpacity,
     Linking,
-    Alert,
     StatusBar,
     Dimensions,
     Platform
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../service/store';
 import { fetchServiceCenterDetail } from '../service/slices/serviceCenterSlice';
@@ -116,7 +116,7 @@ const ServiceCenterDetailScreen: React.FC = () => {
             } else {
                 const addr = formatAddress(sc.address) || '';
                 if (!addr) {
-                    Alert.alert('Không có địa chỉ', 'Không có thông tin địa chỉ để mở bản đồ.');
+                    Toast.show({ type: 'info', text1: 'Không có địa chỉ', text2: 'Không có thông tin địa chỉ để mở bản đồ.' });
                     return;
                 }
                 const encoded = encodeURIComponent(addr);
@@ -127,10 +127,10 @@ const ServiceCenterDetailScreen: React.FC = () => {
             if (supported) {
                 await Linking.openURL(url);
             } else {
-                Alert.alert('Không thể mở bản đồ', 'Không thể mở ứng dụng bản đồ trên thiết bị này.');
+                Toast.show({ type: 'error', text1: 'Không thể mở bản đồ', text2: 'Không thể mở ứng dụng bản đồ trên thiết bị này.' });
             }
         } catch (err) {
-            Alert.alert('Lỗi', 'Không thể mở chỉ đường.');
+            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Không thể mở chỉ đường.' });
         }
     };
 

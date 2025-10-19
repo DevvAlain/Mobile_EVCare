@@ -9,10 +9,10 @@ import {
     RefreshControl,
     Platform,
     Linking,
-    Alert,
     PermissionsAndroid,
     StatusBar,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { AppDispatch } from '../service/store';
@@ -253,7 +253,7 @@ const ServiceCentersScreen: React.FC = () => {
                                 } else {
                                     const addr = formatAddress(item.address) || '';
                                     if (!addr) {
-                                        Alert.alert('Không có địa chỉ', 'Không có thông tin địa chỉ để mở bản đồ.');
+                                        Toast.show({ type: 'info', text1: 'Không có địa chỉ', text2: 'Không có thông tin địa chỉ để mở bản đồ.' });
                                         return;
                                     }
                                     url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;
@@ -261,9 +261,9 @@ const ServiceCentersScreen: React.FC = () => {
 
                                 const supported = await Linking.canOpenURL(url);
                                 if (supported) await Linking.openURL(url);
-                                else Alert.alert('Không thể mở bản đồ', 'Không thể mở ứng dụng bản đồ trên thiết bị này.');
+                                else Toast.show({ type: 'error', text1: 'Không thể mở bản đồ', text2: 'Không thể mở ứng dụng bản đồ trên thiết bị này.' });
                             } catch (e) {
-                                Alert.alert('Lỗi', 'Không thể mở bản đồ.');
+                                Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Không thể mở bản đồ.' });
                             }
                         }}
                     >

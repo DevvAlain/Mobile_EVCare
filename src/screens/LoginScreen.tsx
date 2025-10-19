@@ -11,9 +11,9 @@ import {
     ActivityIndicator,
     StatusBar,
     Dimensions,
-    Alert,
     Animated,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useDispatch, useSelector } from 'react-redux';
@@ -56,13 +56,13 @@ export const LoginScreen = () => {
 
     const handleSubmit = async () => {
         if (!credentials.email || !credentials.password) {
-            Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Vui lòng nhập đầy đủ thông tin' });
             return;
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(credentials.email)) {
-            Alert.alert('Lỗi', 'Vui lòng nhập email hợp lệ');
+            Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Vui lòng nhập email hợp lệ' });
             return;
         }
 

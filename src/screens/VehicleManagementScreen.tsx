@@ -9,10 +9,10 @@ import {
     StyleSheet,
     ScrollView,
     ActivityIndicator,
-    Alert,
     Keyboard,
     TouchableWithoutFeedback,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useAppDispatch, useAppSelector, RootState } from '../service/store';
 import { fetchVehicles as fetchBookingVehicles, createVehicle as createBookingVehicle } from '../service/slices/bookingSlice';
 import { updateVehicle, deleteVehicle } from '../service/slices/vehicleSlice';
@@ -144,10 +144,10 @@ const VehicleManagementScreen = () => {
             await dispatch(createBookingVehicle(normalizedForm)).unwrap();
             setAddOpen(false);
             dispatch(fetchBookingVehicles());
-            Alert.alert('Thành công', 'Đã thêm xe thành công');
+            Toast.show({ type: 'success', text1: 'Thành công', text2: 'Đã thêm xe thành công' });
         } catch (err: any) {
             const msg = err?.message || err?.data?.message || 'Không thể thêm xe';
-            Alert.alert('Lỗi', msg);
+            Toast.show({ type: 'error', text1: 'Lỗi', text2: msg });
         } finally {
             setSubmitting(false);
         }
@@ -200,10 +200,10 @@ const VehicleManagementScreen = () => {
             setEditOpen(false);
             setSelected(null);
             dispatch(fetchBookingVehicles());
-            Alert.alert('Thành công', 'Cập nhật thông tin xe thành công');
+            Toast.show({ type: 'success', text1: 'Thành công', text2: 'Cập nhật thông tin xe thành công' });
         } catch (err: any) {
             const msg = err?.message || err?.data?.message || 'Không thể cập nhật xe';
-            Alert.alert('Lỗi', msg);
+            Toast.show({ type: 'error', text1: 'Lỗi', text2: msg });
         } finally {
             setEditSubmitting(false);
         }
@@ -223,10 +223,10 @@ const VehicleManagementScreen = () => {
             setDeleteOpen(false);
             setSelected(null);
             dispatch(fetchBookingVehicles());
-            Alert.alert('Thành công', 'Đã xóa xe thành công');
+            Toast.show({ type: 'success', text1: 'Thành công', text2: 'Đã xóa xe thành công' });
         } catch (err: any) {
             const msg = err?.message || err?.data?.message || 'Không thể xóa xe';
-            Alert.alert('Lỗi', msg);
+            Toast.show({ type: 'error', text1: 'Lỗi', text2: msg });
         } finally {
             setDeletingId(null);
         }
