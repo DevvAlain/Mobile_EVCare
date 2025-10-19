@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSelector, useDispatch } from 'react-redux';
@@ -45,15 +46,15 @@ const SettingsScreen: React.FC = () => {
   };
 
   const handleLanguage = () => {
-    Alert.alert('Ngôn ngữ', 'Chọn ngôn ngữ (placeholder)');
+    Toast.show({ type: 'info', text1: 'Ngôn ngữ', text2: 'Chọn ngôn ngữ (placeholder)' });
   };
 
   const handleAbout = () => {
-    Alert.alert('Về ứng dụng', 'EVCare - Phiên bản demo');
+    Toast.show({ type: 'info', text1: 'Về ứng dụng', text2: 'EVCare - Phiên bản demo' });
   };
 
   const handleContact = () => {
-    Alert.alert('Liên hệ', 'Email: support@example.com');
+    Toast.show({ type: 'info', text1: 'Liên hệ', text2: 'Email: support@example.com' });
   };
 
   return (
@@ -140,7 +141,7 @@ const SettingsScreen: React.FC = () => {
             <List.Item
               title="Trung tâm trợ giúp"
               left={props => <List.Icon {...props} icon="help-circle" />}
-              onPress={() => Alert.alert('Trợ giúp', 'Mở trung tâm trợ giúp (placeholder)')}
+              onPress={() => Toast.show({ type: 'info', text1: 'Trợ giúp', text2: 'Mở trung tâm trợ giúp (placeholder)' })}
             />
             <Divider />
             <List.Item
@@ -152,7 +153,7 @@ const SettingsScreen: React.FC = () => {
             <List.Item
               title="Đánh giá ứng dụng"
               left={props => <List.Icon {...props} icon="star" />}
-              onPress={() => Alert.alert('Đánh giá', 'Mở cửa hàng để đánh giá (placeholder)')}
+              onPress={() => Toast.show({ type: 'info', text1: 'Đánh giá', text2: 'Mở cửa hàng để đánh giá (placeholder)' })}
             />
           </List.Section>
         </View>

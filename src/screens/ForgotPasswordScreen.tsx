@@ -11,8 +11,8 @@ import {
     ActivityIndicator,
     StatusBar,
     Dimensions,
-    Alert,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useDispatch, useSelector } from 'react-redux';
@@ -54,11 +54,8 @@ export const ForgotPasswordScreen = () => {
             const result = await dispatch(resetPassword({ email }));
 
             if (resetPassword.fulfilled.match(result)) {
-                Alert.alert(
-                    'Email đã được gửi',
-                    'Chúng tôi đã gửi link reset mật khẩu đến email của bạn. Vui lòng kiểm tra hộp thư và làm theo hướng dẫn.',
-                    [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-                );
+                Toast.show({ type: 'success', text1: 'Email đã được gửi', text2: 'Chúng tôi đã gửi link reset mật khẩu đến email của bạn. Vui lòng kiểm tra hộp thư và làm theo hướng dẫn.' });
+                navigation.navigate('Login');
             }
         } catch (error) {
             console.error('Forgot password error:', error);

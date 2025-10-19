@@ -11,9 +11,9 @@ import {
     ActivityIndicator,
     StatusBar,
     Dimensions,
-    Alert,
     Animated,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useDispatch, useSelector } from 'react-redux';
@@ -111,11 +111,8 @@ export const RegisterScreen = () => {
         try {
             const result = await dispatch(registerUser(formData));
             if (registerUser.fulfilled.match(result)) {
-                Alert.alert(
-                    'Đăng ký thành công',
-                    'Tài khoản đã được tạo thành công! Vui lòng kiểm tra email để xác thực tài khoản.',
-                    [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-                );
+                Toast.show({ type: 'success', text1: 'Đăng ký thành công', text2: 'Tài khoản đã được tạo thành công! Vui lòng kiểm tra email để xác thực tài khoản' });
+                navigation.navigate('Login');
             }
         } catch (error) {
             console.error('Register error:', error);

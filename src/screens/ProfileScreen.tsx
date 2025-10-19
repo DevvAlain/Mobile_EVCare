@@ -11,6 +11,7 @@ import {
   TextInput,
   Dimensions,
 } from "react-native";
+import Toast from 'react-native-toast-message';
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { useSelector, useDispatch } from "react-redux";
@@ -134,9 +135,9 @@ const ProfileScreen: React.FC = () => {
       await dispatch(updateUserProfile(form as any)).unwrap();
       await dispatch(fetchUserProfile()).unwrap();
       setIsEditing(false);
-      Alert.alert("Thành công", "Cập nhật thông tin thành công");
+      Toast.show({ type: 'success', text1: 'Thành công', text2: 'Cập nhật thông tin thành công' });
     } catch (err: any) {
-      Alert.alert("Lỗi", err?.message || "Cập nhật thất bại");
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: err?.message || 'Cập nhật thất bại' });
     } finally {
       setSaving(false);
     }
@@ -148,7 +149,7 @@ const ProfileScreen: React.FC = () => {
 
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Quyền truy cập bị từ chối', 'Vui lòng cấp quyền truy cập ảnh để thay đổi ảnh đại diện');
+        Toast.show({ type: 'error', text1: 'Quyền bị từ chối', text2: 'Vui lòng cấp quyền truy cập ảnh để thay đổi ảnh đại diện' });
         setUploading(false);
         return;
       }
@@ -167,11 +168,11 @@ const ProfileScreen: React.FC = () => {
 
         await dispatch(uploadAvatar({ uri, name, type: `image/${type}` })).unwrap();
         await dispatch(fetchUserProfile()).unwrap();
-        Alert.alert('Thành công', 'Ảnh đại diện đã được cập nhật');
+        Toast.show({ type: 'success', text1: 'Thành công', text2: 'Ảnh đại diện đã được cập nhật' });
       }
     } catch (error: any) {
       console.error('Avatar upload error', error);
-      Alert.alert('Lỗi', error?.message || 'Tải ảnh thất bại');
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: error?.message || 'Tải ảnh thất bại' });
     } finally {
       setUploading(false);
     }

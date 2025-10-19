@@ -7,9 +7,9 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Keyboard,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAppDispatch } from '../service/store';
 import { createVehicle } from '../service/slices/bookingSlice';
@@ -110,11 +110,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         },
       };
       await dispatch(createVehicle(normalizedForm)).unwrap();
-      Alert.alert('Thành công', 'Đã thêm xe thành công');
+      Toast.show({ type: 'success', text1: 'Thành công', text2: 'Đã thêm xe thành công' });
       onSuccess?.();
     } catch (err: any) {
       const msg = err?.message || err?.data?.message || 'Không thể thêm xe';
-      Alert.alert('Lỗi', msg);
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: msg });
     } finally {
       setSubmitting(false);
     }
@@ -202,7 +202,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   };
 
   return (
-    <ScrollView 
+    <ScrollView
       style={styles.container}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -306,11 +306,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         error={fieldErrors.year}
         iconName="event"
         showIncrementDecrement
-        onIncrement={() => setForm(prev => ({ 
-          vehicleInfo: { ...prev.vehicleInfo, year: Math.min(new Date().getFullYear() + 1, prev.vehicleInfo.year + 1) } 
+        onIncrement={() => setForm(prev => ({
+          vehicleInfo: { ...prev.vehicleInfo, year: Math.min(new Date().getFullYear() + 1, prev.vehicleInfo.year + 1) }
         }))}
-        onDecrement={() => setForm(prev => ({ 
-          vehicleInfo: { ...prev.vehicleInfo, year: Math.max(1970, prev.vehicleInfo.year - 1) } 
+        onDecrement={() => setForm(prev => ({
+          vehicleInfo: { ...prev.vehicleInfo, year: Math.max(1970, prev.vehicleInfo.year - 1) }
         }))}
       />
 
