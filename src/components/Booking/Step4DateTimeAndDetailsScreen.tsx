@@ -106,7 +106,7 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
     if (hasChanges) {
       dispatch(updateBookingData(newBookingData));
     }
-  }, [selectedDate, selectedTime, customTime, timeSelectionMode, serviceDescription, paymentPreference, dispatch, bookingData]);
+  }, [selectedDate, selectedTime, customTime, timeSelectionMode, serviceDescription, paymentPreference, dispatch]);
 
   const handleDateSelect = (date: Date) => {
     const dateString = dayjs(date).format('YYYY-MM-DD');
@@ -230,7 +230,7 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
           }[snackType];
           return (
             <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 9999 }}>
-              <Animated.View style={{ transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [-40, Math.max(insets.top, 8) ] }) }], opacity: toastAnim, paddingHorizontal: 16, paddingTop: 8 }}>
+              <Animated.View style={{ transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [-40, Math.max(insets.top, 8)] }) }], opacity: toastAnim, paddingHorizontal: 16, paddingTop: 8 }}>
                 <View style={{ backgroundColor: meta.bg, borderLeftWidth: 4, borderLeftColor: meta.border, padding: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4 }}>
                   <Icon name={meta.icon as any} size={18} color={meta.border} />
                   <Text style={{ color: meta.text, flex: 1 }}>{snack}</Text>

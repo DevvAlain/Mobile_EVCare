@@ -164,7 +164,7 @@ const BookingHistoryScreen: React.FC = () => {
     }, 3000);
     return () => clearTimeout(t);
   }, [snack, toastAnim]);
-  
+
 
   // Details modal
   const [detail, setDetail] = useState<Booking | null>(null);
@@ -339,23 +339,23 @@ const BookingHistoryScreen: React.FC = () => {
     if (!rescheduleFor) return;
     if (!newDate) return setRescheduleErr('Vui lòng chọn ngày mới');
     if (!slot) return setRescheduleErr('Vui lòng chọn khung giờ mới');
-    
+
     // Validate date is not in the past
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const selectedDate = new Date(newDate);
     selectedDate.setHours(0, 0, 0, 0);
-    
+
     if (selectedDate < today) {
       return setRescheduleErr('Không thể chọn ngày trong quá khứ');
     }
-    
+
     setRescheduleErr('');
     try {
-      await dispatch(rescheduleBooking({ 
-        bookingId: rescheduleFor._id, 
-        appointmentDate: dayjs(newDate).format('YYYY-MM-DD'), 
-        appointmentTime: slot 
+      await dispatch(rescheduleBooking({
+        bookingId: rescheduleFor._id,
+        appointmentDate: dayjs(newDate).format('YYYY-MM-DD'),
+        appointmentTime: slot
       }) as any);
       showToast('Đổi lịch thành công!', 'success');
       setRescheduleOpen(false);
@@ -466,7 +466,7 @@ const BookingHistoryScreen: React.FC = () => {
             <Icon name="time-outline" size={18} color="#52c41a" />
             <View style={styles.timeInfo}>
               <Text style={styles.timeText}>
-                {formatTime12h(item.appointmentTime?.startTime || '')} 
+                {formatTime12h(item.appointmentTime?.startTime || '')}
               </Text>
             </View>
           </View>
@@ -760,7 +760,7 @@ const BookingHistoryScreen: React.FC = () => {
         />
       )}
 
-      
+
       {/* Reschedule Date Picker */}
       {showRescheduleDatePicker && (
         <DateTimePicker
@@ -768,8 +768,8 @@ const BookingHistoryScreen: React.FC = () => {
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           minimumDate={new Date()}
-          onChange={(_, d) => { 
-            setShowRescheduleDatePicker(false); 
+          onChange={(_, d) => {
+            setShowRescheduleDatePicker(false);
             if (d) {
               setNewDate(d);
               setSlot(''); // Reset slot when date changes
@@ -777,7 +777,7 @@ const BookingHistoryScreen: React.FC = () => {
             }
           }}
         />
-      )}  
+      )}
 
 
 
@@ -887,7 +887,7 @@ const BookingHistoryScreen: React.FC = () => {
                   <Card.Content>
                     <TextInput label="Ghi chú (tùy chọn)" value={quoteNotes} onChangeText={setQuoteNotes} multiline />
                     <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                      <Button icon="checkmark" onPress={() => submitQuoteResponse('approved')} loading={progressLoading}>Chấp nhận</Button>
+                      <Button icon="checkmark-outline" onPress={() => submitQuoteResponse('approved')} loading={progressLoading}>Chấp nhận</Button>
                       <Button icon="close" onPress={() => submitQuoteResponse('rejected')} loading={progressLoading}>Từ chối</Button>
                     </View>
                   </Card.Content>
@@ -901,7 +901,7 @@ const BookingHistoryScreen: React.FC = () => {
         <Modal visible={rescheduleOpen} onDismiss={() => setRescheduleOpen(false)} contentContainerStyle={styles.modalBox}>
           <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Đổi lịch hẹn</Text>
           <Divider style={{ marginVertical: 12 }} />
-          
+
           {/* Date Selection */}
           <View style={{ marginBottom: 16 }}>
             <Text style={[styles.label, { fontSize: 14, fontWeight: '600', marginBottom: 8 }]}>Chọn ngày mới</Text>
@@ -913,12 +913,12 @@ const BookingHistoryScreen: React.FC = () => {
               editable={false}
               style={{ marginBottom: 8 }}
             />
-            
+
             {/* Quick date option */}
             <View style={{ marginTop: 8 }}>
-              <Button 
-                mode="outlined" 
-                compact 
+              <Button
+                mode="outlined"
+                compact
                 onPress={() => setNewDate(new Date())}
                 style={{ alignSelf: 'flex-start' }}
               >
@@ -928,20 +928,20 @@ const BookingHistoryScreen: React.FC = () => {
           </View>
           {!!newDate && (
             <View style={{ marginBottom: 20 }}>
-               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                 <Icon name="time-outline" size={20} color="#1890ff" />
-                <Text style={{ 
-                  fontSize: 16, 
-                  fontWeight: '600', 
+                <Text style={{
+                  fontSize: 16,
+                  fontWeight: '600',
                   color: '#1f2937',
                   marginLeft: 8
                 }}>
-                   Chọn giờ đến
+                  Chọn giờ đến
                 </Text>
               </View>
-              
+
               {slotLoading ? (
-                <View style={{ 
+                <View style={{
                   backgroundColor: '#f8fafc',
                   borderRadius: 12,
                   padding: 20,
@@ -950,9 +950,9 @@ const BookingHistoryScreen: React.FC = () => {
                   borderColor: '#e2e8f0'
                 }}>
                   <ProgressBar indeterminate color="#1890ff" />
-                  <Text style={{ 
-                    textAlign: 'center', 
-                    marginTop: 12, 
+                  <Text style={{
+                    textAlign: 'center',
+                    marginTop: 12,
                     color: '#6b7280',
                     fontSize: 14
                   }}>
@@ -985,26 +985,26 @@ const BookingHistoryScreen: React.FC = () => {
                           onPress={() => setShowTimeMenu(true)}
                         >
                           <View style={{ flex: 1 }}>
-                             <Text style={{ 
-                               color: slot ? '#1890ff' : '#6b7280',
-                               fontSize: 16,
-                               fontWeight: slot ? '600' : '400'
-                             }}>
-                               {slot ? 
-                                 slots.find(s => s.startTime === slot) ? 
-                                   `${formatTime12h(slots.find(s => s.startTime === slot)!.startTime)}` :
-                                   'Chọn giờ đến'
-                                 : 'Chọn giờ đến'
-                               }
-                             </Text>
+                            <Text style={{
+                              color: slot ? '#1890ff' : '#6b7280',
+                              fontSize: 16,
+                              fontWeight: slot ? '600' : '400'
+                            }}>
+                              {slot ?
+                                slots.find(s => s.startTime === slot) ?
+                                  `${formatTime12h(slots.find(s => s.startTime === slot)!.startTime)}` :
+                                  'Chọn giờ đến'
+                                : 'Chọn giờ đến'
+                              }
+                            </Text>
                             {!slot && (
-                               <Text style={{ 
-                                 color: '#9ca3af',
-                                 fontSize: 12,
-                                 marginTop: 2
-                               }}>
-                                 Tap để xem các giờ đến có sẵn
-                               </Text>
+                              <Text style={{
+                                color: '#9ca3af',
+                                fontSize: 12,
+                                marginTop: 2
+                              }}>
+                                Tap để xem các giờ đến có sẵn
+                              </Text>
                             )}
                           </View>
                           <View style={{
@@ -1012,23 +1012,23 @@ const BookingHistoryScreen: React.FC = () => {
                             borderRadius: 6,
                             padding: 4
                           }}>
-                            <Icon 
-                              name="chevron-down" 
-                              size={16} 
-                              color={slot ? 'white' : '#6b7280'} 
+                            <Icon
+                              name="chevron-down"
+                              size={16}
+                              color={slot ? 'white' : '#6b7280'}
                             />
                           </View>
                         </TouchableOpacity>
                       }
                     >
-                       {slots.map((s) => (
+                      {slots.map((s) => (
                         <Menu.Item
                           key={`${s.startTime}-${s.endTime}`}
                           onPress={() => {
                             setSlot(s.startTime);
                             setShowTimeMenu(false);
                           }}
-                           title={`${formatTime12h(s.startTime)}`}
+                          title={`${formatTime12h(s.startTime)}`}
                           style={{
                             backgroundColor: slot === s.startTime ? '#f0f9ff' : 'transparent'
                           }}
@@ -1036,26 +1036,26 @@ const BookingHistoryScreen: React.FC = () => {
                       ))}
                     </Menu>
                   ) : (
-                    <View style={{ 
-                      backgroundColor: '#fef2f2', 
-                      padding: 16, 
-                      borderRadius: 12, 
-                      borderWidth: 1, 
+                    <View style={{
+                      backgroundColor: '#fef2f2',
+                      padding: 16,
+                      borderRadius: 12,
+                      borderWidth: 1,
                       borderColor: '#fecaca',
                       alignItems: 'center'
                     }}>
                       <Icon name="alert-circle-outline" size={24} color="#dc2626" />
-                      <Text style={{ 
-                        color: '#dc2626', 
-                        textAlign: 'center', 
+                      <Text style={{
+                        color: '#dc2626',
+                        textAlign: 'center',
                         fontWeight: '600',
                         marginTop: 8,
                         fontSize: 14
                       }}>
                         Không có khung giờ trống
                       </Text>
-                      <Text style={{ 
-                        color: '#991b1b', 
+                      <Text style={{
+                        color: '#991b1b',
                         textAlign: 'center',
                         marginTop: 4,
                         fontSize: 12
@@ -1270,7 +1270,7 @@ const BookingHistoryScreen: React.FC = () => {
           }[snackType];
           return (
             <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 9999 }}>
-              <Animated.View style={{ transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [-30, Math.max(insets.top, 8) ] }) }], opacity: toastAnim, paddingHorizontal: 16, paddingTop: 8 }}>
+              <Animated.View style={{ transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [-30, Math.max(insets.top, 8)] }) }], opacity: toastAnim, paddingHorizontal: 16, paddingTop: 8 }}>
                 <TouchableOpacity onPress={() => setSnack('')} activeOpacity={0.95}>
                   <View style={{ backgroundColor: meta.bg, borderLeftWidth: 4, borderLeftColor: meta.border, padding: 12, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4 }}>
                     <Icon name={meta.icon as any} size={18} color={meta.border} />
