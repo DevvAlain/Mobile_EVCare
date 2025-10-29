@@ -9,6 +9,13 @@ const BottomTabBar: React.FC = () => {
     const navigation = useNavigation<any>();
     const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
 
+    // Hide tabs when logged in as a technician (role-based). This is more reliable
+    // than trying to inspect the navigation state from here.
+    const role = useSelector((state: RootState) => state.auth.user?.role);
+    if (isAuthenticated && role && String(role).toLowerCase() === 'technician') {
+        return null;
+    }
+
     const handlePress = (route: string) => {
         if (route === 'Home') {
             navigation.navigate('Home');

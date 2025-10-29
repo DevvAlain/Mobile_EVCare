@@ -25,7 +25,8 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.45)',
-    zIndex: 15,
+    zIndex: 120,
+    elevation: 120,
   },
 });
 
