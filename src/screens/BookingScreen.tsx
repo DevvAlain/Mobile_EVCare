@@ -146,7 +146,7 @@ const BookingScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: 0 }]}>
       {/* Header with quick access to booking history */}
       
 
@@ -226,8 +226,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#1890ff',
-    padding: 20,
-    marginBottom: 16,
+    padding: 10,
+    marginBottom: 8,
   },
   headerContent: {
     flexDirection: 'row',
@@ -263,8 +263,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   stepsCard: {
-    margin: 16,
-    marginTop: 0,
+    margin: 10,
+    marginTop: 10,
   },
   stepsContainer: {
     flexDirection: 'row',
@@ -320,7 +320,8 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 2,
+    marginTop: 10,
   },
   progressInfo: {
     flexDirection: 'row',
@@ -344,7 +345,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   helpSection: {
-    padding: 16,
+    padding: 10,
     alignItems: 'center',
   },
   helpText: {

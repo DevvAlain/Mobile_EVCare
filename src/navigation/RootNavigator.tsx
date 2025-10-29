@@ -1,5 +1,5 @@
-import React from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import React, { useRef, useState } from "react";
+import { NavigationContainer, createNavigationContainerRef } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider as PaperProvider } from "react-native-paper";
@@ -38,10 +38,24 @@ const AuthStack = () => {
 };
 
 const RootNavigator = () => {
+  const navigationRef = useRef(createNavigationContainerRef());
+  const [showTabs, setShowTabs] = useState(true);
+
+  const handleStateChange = () => {
+    try {
+      const currentRoute = navigationRef.current?.getCurrentRoute();
+      const currentName = currentRoute?.name ?? "";
+      const hideOnRoutes = ["Auth", "Login", "Register", "ForgotPassword"];
+      setShowTabs(!hideOnRoutes.includes(currentName));
+    } catch {
+      // no-op
+    }
+  };
+
   return (
     <SafeAreaProvider>
       <PaperProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef as any} onStateChange={handleStateChange}>
           <Stack.Navigator
             initialRouteName="Home"
             screenOptions={{
@@ -121,8 +135,13 @@ const RootNavigator = () => {
             <Stack.Screen name="TechnicianSettings" component={TechnicianSettingsScreen} options={{ headerShown: false }} />
           </Stack.Navigator>
 
+          {/* Global bottom tabs */}
+          {showTabs && <BottomTabBar />}
+
+
           {/* Global bottom tabs (customer/guest). The BottomTabBar itself will hide when a technician screen is active. */}
           <BottomTabBar />
+
         </NavigationContainer>
       </PaperProvider>
     </SafeAreaProvider>

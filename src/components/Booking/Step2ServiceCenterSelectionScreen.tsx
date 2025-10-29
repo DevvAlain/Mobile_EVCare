@@ -163,7 +163,7 @@ const Step2ServiceCenterSelectionScreen: React.FC<Step2ServiceCenterSelectionScr
 
   if (loading || ratingsLoading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: Math.max(insets.top - 16, 0) }]}>
         <View style={styles.loadingContainer}>
           <ProgressBar indeterminate />
           <Text style={styles.loadingText}>Đang tải...</Text>
@@ -286,7 +286,7 @@ const Step2ServiceCenterSelectionScreen: React.FC<Step2ServiceCenterSelectionScr
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top - 16, 0) }]}>
 
 
       {/* Search and Filter */}
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
   },
   searchSection: {
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   searchInput: {
     backgroundColor: 'white',
@@ -468,12 +468,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   listContent: {
-    paddingBottom: 16,
+    paddingBottom: 12,
+    paddingTop: 4,
   },
   serviceCenterCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    marginBottom: 8,
+    marginBottom: 6,
     borderWidth: 1,
     borderColor: '#e5e7eb',
     shadowColor: '#000',
@@ -540,7 +541,7 @@ const styles = StyleSheet.create({
   },
   expandedContent: {
     paddingHorizontal: 12,
-    paddingBottom: 8,
+    paddingBottom: 10,
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
   },
@@ -573,7 +574,7 @@ const styles = StyleSheet.create({
   addressSection: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   addressInfo: {
     flex: 1,
@@ -592,7 +593,7 @@ const styles = StyleSheet.create({
   contactSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   contactText: {
     fontSize: 14,
@@ -600,10 +601,10 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   hoursSection: {
-    marginBottom: 8,
+    marginBottom: 6,
   },
   servicesSection: {
-    marginBottom: 8,
+    marginBottom: 6,
   },
   servicesContainer: {
     flexDirection: 'row',
@@ -628,7 +629,7 @@ const styles = StyleSheet.create({
   },
   disabledMessage: {
     backgroundColor: '#fef2f2',
-    padding: 12,
+    padding: 10,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#fecaca',
@@ -658,7 +659,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 48,
+    paddingVertical: 36,
   },
   emptyTitle: {
     fontSize: 18,
@@ -674,11 +675,11 @@ const styles = StyleSheet.create({
   },
   navigationContainer: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 12,
     backgroundColor: 'white',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    gap: 12,
+    gap: 8,
   },
   backButton: {
     flex: 1,

@@ -9,7 +9,7 @@ import {
   Camera,
   Navigation
 } from 'lucide-react';
-import { ServiceCenter } from '../../interfaces/serviceCenter';
+import { ServiceCenter, Image as SCImage, PaymentMethod, Service } from '../../types/serviceCenter';
 import RealTimeStatus from './RealTimeStatus';
 
 interface ServiceCenterCardProps {
@@ -36,7 +36,7 @@ const ServiceCenterCard: React.FC<ServiceCenterCardProps> = ({
     status
   } = serviceCenter;
 
-  const primaryImage = images?.find(img => img.isPrimary) || images?.[0];
+  const primaryImage = images?.find((img: SCImage) => img.isPrimary) || images?.[0];
 
   const formatOperatingHours = () => {
     if (!operatingHours) return 'N/A';
@@ -143,11 +143,7 @@ const ServiceCenterCard: React.FC<ServiceCenterCardProps> = ({
 
         {/* Operating Hours */}
         <div className="mb-3">
-          <RealTimeStatus
-            operatingHours={operatingHours}
-            className="mb-1"
-            showNextOpening={true}
-          />
+          <RealTimeStatus operatingHours={operatingHours} showNextOpening={true} />
           <div className="text-sm text-gray-600 ml-6">
             {formatOperatingHours()}
           </div>
@@ -169,7 +165,7 @@ const ServiceCenterCard: React.FC<ServiceCenterCardProps> = ({
               <span className="text-sm font-medium text-gray-700">Services:</span>
             </div>
             <div className="flex flex-wrap gap-1">
-              {services.slice(0, 2).map((service, index) => (
+              {services.slice(0, 2).map((service: Service, index: number) => (
                 <Tag key={`service-${service._id}-${index}`} color="blue" className="text-xs">
                   {service.name}
                 </Tag>
@@ -189,7 +185,7 @@ const ServiceCenterCard: React.FC<ServiceCenterCardProps> = ({
               <span className="text-sm font-medium text-gray-700">Payment:</span>
             </div>
             <div className="flex flex-wrap gap-1">
-              {paymentMethods.filter(pm => pm.isEnabled).slice(0, 2).map((method, index) => (
+              {paymentMethods.filter((pm: PaymentMethod) => pm.isEnabled).slice(0, 2).map((method: PaymentMethod, index: number) => (
                 <Tag key={`payment-${method._id}-${index}`} color="green" className="text-xs">
                   {method.type === 'cash' ? 'Cash' :
                     method.type === 'card' ? 'Card' :
@@ -197,9 +193,9 @@ const ServiceCenterCard: React.FC<ServiceCenterCardProps> = ({
                         method.type === 'ewallet' ? 'E-Wallet' : method.type}
                 </Tag>
               ))}
-              {paymentMethods.filter(pm => pm.isEnabled).length > 2 && (
+              {paymentMethods.filter((pm: PaymentMethod) => pm.isEnabled).length > 2 && (
                 <Tag color="default" className="text-xs">
-                  +{paymentMethods.filter(pm => pm.isEnabled).length - 2}
+                  +{paymentMethods.filter((pm: PaymentMethod) => pm.isEnabled).length - 2}
                 </Tag>
               )}
             </div>
