@@ -103,6 +103,45 @@ export const SUBMIT_CUSTOMER_FEEDBACK_ENDPOINT = (appointmentId: string) =>
 export const GET_CUSTOMER_FEEDBACK_ENDPOINT = (appointmentId: string) =>
   `${API_BASE_URL}/appointments/${appointmentId}/feedback`;
 
+// Technician endpoints
+export const TECHNICIAN_SCHEDULES_BY_TECHNICIAN_ENDPOINT = (
+  technicianId: string
+) => `${API_BASE_URL}/technicians/${technicianId}/schedules`;
+export const TECHNICIAN_SCHEDULE_CREATE_ENDPOINT = `${API_BASE_URL}/technician-schedules`;
+export const TECHNICIAN_SCHEDULE_CREATE_DEFAULT_ENDPOINT = `${API_BASE_URL}/technician-schedules/default`;
+export const TECHNICIAN_SCHEDULE_LIST_ENDPOINT = `${API_BASE_URL}/technician-schedules`;
+export const TECHNICIAN_SCHEDULE_BY_CENTER_ENDPOINT = `${API_BASE_URL}/technician-schedules`;
+export const TECHNICIAN_SCHEDULE_UPDATE_ENDPOINT = (id: string) =>
+  `${API_BASE_URL}/technician-schedules/${id}`;
+export const TECHNICIAN_SCHEDULE_DELETE_ENDPOINT = (id: string) =>
+  `${API_BASE_URL}/technician-schedules/${id}`;
+export const TECHNICIAN_SCHEDULE_ADD_APPOINTMENT_ENDPOINT = (id: string) =>
+  `${API_BASE_URL}/technician-schedules/${id}/appointments`;
+export const TECHNICIAN_STAFF_BY_CENTER_ENDPOINT = (centerId: string) =>
+  `${API_BASE_URL}/service-centers/${centerId}/staff?position=technician`;
+export const AVAILABLE_TECHNICIANS_ENDPOINT = (centerId: string) =>
+  `${API_BASE_URL}/service-centers/${centerId}/available-technicians`;
+export const WORK_PROGRESS_LIST_ENDPOINT = `${API_BASE_URL}/work-progress`;
+export const TECHNICIAN_PROGRESS_CREATE_ENDPOINT = `${API_BASE_URL}/work-progress`;
+export const WORK_PROGRESS_DETAIL_ENDPOINT = (id: string) =>
+  `${API_BASE_URL}/work-progress/${id}`;
+export const WORK_PROGRESS_PROCESS_PAYMENT_ENDPOINT = (id: string) =>
+  `${API_BASE_URL}/work-progress/${id}/process-payment`;
+export const TECHNICIAN_PROGRESS_INSPECTION_QUOTE_ENDPOINT = (
+  progressId: string
+) => `${API_BASE_URL}/work-progress/${progressId}/inspection-quote`;
+export const TECHNICIAN_PROGRESS_START_MAINTENANCE_ENDPOINT = (
+  progressId: string
+) => `${API_BASE_URL}/work-progress/${progressId}/start-maintenance`;
+export const TECHNICIAN_PROGRESS_COMPLETE_MAINTENANCE_ENDPOINT = (
+  progressId: string
+) => `${API_BASE_URL}/work-progress/${progressId}/complete-maintenance`;
+// Technician check in/out endpoints (mirror web frontend)
+export const TECHNICIAN_CHECK_IN_ENDPOINT = (scheduleId: string) =>
+  `${API_BASE_URL}/technician-schedules/${scheduleId}/check-in`;
+export const TECHNICIAN_CHECK_OUT_ENDPOINT = (scheduleId: string) =>
+  `${API_BASE_URL}/technician-schedules/${scheduleId}/check-out`;
+
 // Payment endpoints
 export const PAYMENTS_ENDPOINT = "/payments";
 export const PAYMENT_HISTORY_ENDPOINT = "/payments/history";

@@ -17,6 +17,13 @@ import PaymentHistoryScreen from "../screens/Payment/PaymentHistorySreen";
 import ServiceCentersScreen from "../screens/ServiceCentersScreen";
 import ServiceCenterDetailScreen from "../screens/ServiceCenterDetailScreen";
 import BottomTabBar from "../components/BottomTabBar";
+// Technician screens
+import TechnicianHomeScreen from "../screens/Technician/TechnicianHomeScreen";
+import TechnicianScheduleScreen from "../screens/Technician/ScheduleScreen";
+import TechnicianWorkProgressScreen from "../screens/Technician/WorkProgressScreen";
+import TechnicianChatScreen from "../screens/Technician/ChatScreen";
+import TechnicianHistoryScreen from "../screens/Technician/HistoryScreen";
+import TechnicianSettingsScreen from "../screens/Technician/SettingsScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -56,14 +63,13 @@ const RootNavigator = () => {
               headerTintColor: "#000",
             }}
           >
-
+            {/* Customer / Guest screens */}
             <Stack.Screen
               name="Home"
               component={HomeScreen}
               options={{ headerShown: false }}
             />
 
-            {/* Common screens */}
             <Stack.Screen
               name="Profile"
               component={ProfileScreen}
@@ -119,9 +125,23 @@ const RootNavigator = () => {
               component={AuthStack}
               options={{ headerShown: false }}
             />
+
+            {/* Technician screens - available but not the initial route. */}
+            <Stack.Screen name="TechnicianHome" component={TechnicianHomeScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="TechnicianSchedule" component={TechnicianScheduleScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="TechnicianWorkProgress" component={TechnicianWorkProgressScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="TechnicianChat" component={TechnicianChatScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="TechnicianHistory" component={TechnicianHistoryScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="TechnicianSettings" component={TechnicianSettingsScreen} options={{ headerShown: false }} />
           </Stack.Navigator>
+
           {/* Global bottom tabs */}
           {showTabs && <BottomTabBar />}
+
+
+          {/* Global bottom tabs (customer/guest). The BottomTabBar itself will hide when a technician screen is active. */}
+          <BottomTabBar />
+
         </NavigationContainer>
       </PaperProvider>
     </SafeAreaProvider>
