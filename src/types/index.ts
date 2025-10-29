@@ -1,5 +1,5 @@
-// Mobile app is Customer-only. Keep role simple to avoid multi-role logic.
-export type UserRole = "customer";
+// Supported roles in mobile: customer, technician
+export type UserRole = "customer" | "technician";
 
 export interface User {
   id: string;
@@ -137,6 +137,13 @@ export type RootStackParamList = {
   ManageVehicles: undefined;
   PaymentHistory: undefined;
   ChangePassword: undefined;
+  // Technician routes
+  TechnicianHome: undefined;
+  TechnicianSchedule: undefined;
+  TechnicianWorkProgress: undefined;
+  TechnicianChat: undefined;
+  TechnicianHistory: undefined;
+  TechnicianSettings: undefined;
 };
 
 export interface AppState {

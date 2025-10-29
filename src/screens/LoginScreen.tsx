@@ -10,7 +10,6 @@ import {
     ScrollView,
     ActivityIndicator,
     StatusBar,
-    Dimensions,
     Animated,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
@@ -22,7 +21,7 @@ import { RootStackParamList } from '../types';
 import { RootState } from '../service/store';
 import { AppDispatch } from '../service/store';
 
-const { width, height } = Dimensions.get('window');
+// screen dimensions not currently used here
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -32,8 +31,9 @@ export const LoginScreen = () => {
     const { loading, error } = useSelector((state: RootState) => state.auth);
     const [credentials, setCredentials] = useState({ email: '', password: '' });
     const [showPassword, setShowPassword] = useState(false);
-    const [fadeAnim] = useState(new Animated.Value(0));
-    const [slideAnim] = useState(new Animated.Value(30));
+    // useRef for animated values to avoid re-creating values on each render
+    const fadeAnim = React.useRef(new Animated.Value(0)).current;
+    const slideAnim = React.useRef(new Animated.Value(30)).current;
 
     React.useEffect(() => {
         Animated.parallel([
@@ -69,18 +69,20 @@ export const LoginScreen = () => {
         try {
             const result = await dispatch(loginUser(credentials));
             if (loginUser.fulfilled.match(result)) {
-                // Reset navigation to top-level Home screen after successful login
-                navigation.reset({
-                    index: 0,
-                    routes: [
-                        {
-                            name: 'Home',
-                        } as any,
-                    ],
-                });
+                // Get role from payload and navigate accordingly
+                const payload: any = (result as any).payload;
+                const role = payload?.user?.role || payload?.role;
+
+                if (role === 'technician') {
+                    // Navigate into the technician UI
+                    navigation.reset({ index: 0, routes: [{ name: 'TechnicianHome' } as any] });
+                } else {
+                    // Default: go to Home
+                    navigation.reset({ index: 0, routes: [{ name: 'Home' } as any] });
+                }
             }
-        } catch (error) {
-            console.error('Login error:', error);
+        } catch (err) {
+            console.error('Login error:', err);
         }
     };
 

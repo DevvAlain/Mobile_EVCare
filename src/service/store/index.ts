@@ -10,11 +10,13 @@ import bookingReducer from "../slices/bookingSlice";
 import paymentReducer from "../slices/paymentSlice.ts/paymentSlice";
 import vehicleReducer from "../slices/vehicleSlice";
 import serviceCenterReducer from "../slices/serviceCenterSilce.ts/serviceCenterSlice";
+import technicianReducer from "../technician/technicianSlice";
+import workProgressReducer from "../technician/workProgressSlice";
 
 const persistConfig = {
   key: "root",
   storage: AsyncStorage,
-  whitelist: ["auth", "user"],
+  whitelist: ["user"],
 };
 
 const rootReducer = combineReducers({
@@ -25,6 +27,8 @@ const rootReducer = combineReducers({
   payment: paymentReducer, // Added payment slice
   vehicle: vehicleReducer, // Added vehicle slice
   serviceCenter: serviceCenterReducer, // Added serviceCenter slice
+  technician: technicianReducer,
+  workProgress: workProgressReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
