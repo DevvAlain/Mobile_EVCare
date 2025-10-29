@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
-// Sidebar removed for mobile-like bottom tab UI
+import { Ionicons, MaterialIcons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { RootState } from '../service/store';
 import { AppDispatch } from '../service/store';
 
@@ -61,12 +61,20 @@ const HomeScreen = () => {
     }, 1500);
   };
 
+  const handleProtectedNavigate = (routeName: string) => {
+    if (!isAuthenticated) {
+      navigation.navigate('Auth', { screen: 'Login' });
+      return;
+    }
+    navigation.navigate(routeName);
+  };
+
   const features = [
     {
       id: 1,
       title: 'Theo dõi xe & nhắc lịch',
       description: 'Nhắc lịch bảo dưỡng tự động theo km hoặc thời gian',
-      icon: '🚗',
+      icon: 'car-outline',
       color: '#1a40b8',
       delay: 100,
     },
@@ -74,7 +82,7 @@ const HomeScreen = () => {
       id: 2,
       title: 'Đặt lịch dịch vụ',
       description: 'Đặt lịch bảo dưỡng và sửa chữa trực tuyến',
-      icon: '📅',
+      icon: 'calendar-outline',
       color: '#10B981',
       delay: 200,
       onPress: () => handleProtectedNavigate('Booking'),
@@ -83,7 +91,7 @@ const HomeScreen = () => {
       id: 3,
       title: 'Lịch sử dịch vụ',
       description: 'Theo dõi lịch sử bảo dưỡng và chi phí',
-      icon: '📋',
+      icon: 'document-text-outline',
       color: '#F59E0B',
       delay: 300,
       onPress: () => handleProtectedNavigate('BookingHistory'),
@@ -92,7 +100,7 @@ const HomeScreen = () => {
       id: 4,
       title: 'Quản lý thanh toán',
       description: 'Thanh toán trực tuyến với nhiều lựa chọn',
-      icon: '💳',
+      icon: 'card-outline',
       color: '#8B5CF6',
       delay: 400,
       onPress: () => handleProtectedNavigate('PaymentHistory'),
@@ -103,7 +111,7 @@ const HomeScreen = () => {
     {
       id: 1,
       title: 'Trung tâm gần bạn',
-      icon: '📍',
+      icon: 'location-outline',
       color: '#3B82F6',
       delay: 0,
       onPress: () => handleProtectedNavigate('ServiceCenters'),
@@ -111,7 +119,7 @@ const HomeScreen = () => {
     {
       id: 2,
       title: 'Đặt lịch bảo dưỡng',
-      icon: '🔧',
+      icon: 'construct-outline',
       color: '#10B981',
       delay: 100,
       onPress: () => handleProtectedNavigate('Booking'),
@@ -119,7 +127,7 @@ const HomeScreen = () => {
     {
       id: 3,
       title: 'Lịch sử đặt lịch',
-      icon: '📊',
+      icon: 'bar-chart-outline',
       color: '#F59E0B',
       delay: 200,
       onPress: () => handleProtectedNavigate('BookingHistory'),
@@ -127,7 +135,7 @@ const HomeScreen = () => {
     {
       id: 4,
       title: 'Quản lý xe',
-      icon: '🚙',
+      icon: 'car-sport-outline',
       color: '#8B5CF6',
       delay: 300,
       onPress: () => handleProtectedNavigate('ManageVehicles'),
@@ -135,16 +143,6 @@ const HomeScreen = () => {
   ];
 
   const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
-
-  const handleProtectedNavigate = (routeName: string) => {
-    // Home is allowed for unauthenticated users, everything else should require login
-    if (!isAuthenticated) {
-      navigation.navigate('Auth', { screen: 'Login' });
-      return;
-    }
-
-    navigation.navigate(routeName);
-  };
 
   return (
     <>
@@ -184,15 +182,15 @@ const HomeScreen = () => {
                 <>
                   <TouchableOpacity
                     style={styles.loginButton}
-                    onPress={() => navigation.navigate('Auth', { screen: 'Login' })} // Điều hướng đến AuthStack và màn hình Login
+                    onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
                   >
-                    <Text style={styles.loginButtonText}>Login</Text>
+                    <Text style={styles.loginButtonText}>Đăng nhập</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.registerButton}
-                    onPress={() => navigation.navigate('Auth', { screen: 'Register' })} // Điều hướng đến AuthStack và màn hình Register
+                    onPress={() => navigation.navigate('Auth', { screen: 'Register' })}
                   >
-                    <Text style={styles.registerButtonText}>Register</Text>
+                    <Text style={styles.registerButtonText}>Đăng ký</Text>
                   </TouchableOpacity>
                 </>
               ) : (
@@ -207,9 +205,7 @@ const HomeScreen = () => {
                         style={styles.profileIconImage}
                       />
                     ) : (
-                      <Text style={styles.profileIconText}>
-                        {user?.fullName?.charAt(0) || '👤'}
-                      </Text>
+                      <Ionicons name="person" size={20} color="#64748b" />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -238,10 +234,10 @@ const HomeScreen = () => {
               </Text>
               <TouchableOpacity
                 style={styles.ctaButton}
-                onPress={() => navigation.navigate('Booking')}
+                onPress={() => handleProtectedNavigate('Booking')}
               >
                 <Text style={styles.ctaButtonText}>Đặt lịch bảo dưỡng</Text>
-                <Text style={styles.ctaArrow}>→</Text>
+                <Ionicons name="arrow-forward" size={18} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
@@ -268,7 +264,7 @@ const HomeScreen = () => {
                 onPress={action.onPress}
               >
                 <View style={[styles.actionIconContainer, { backgroundColor: action.color }]}>
-                  <Text style={styles.actionIcon}>{action.icon}</Text>
+                  <Ionicons name={action.icon as any} size={20} color="#fff" />
                 </View>
                 <Text style={styles.actionTitle}>{action.title}</Text>
               </AnimatedTouchable>
@@ -294,12 +290,13 @@ const HomeScreen = () => {
                     }]
                   }
                 ]}
+                onPress={feature.onPress}
               >
                 <View style={styles.featureHeader}>
                   <View style={[styles.featureIconContainer, { backgroundColor: feature.color + '20' }]}>
-                    <Text style={styles.featureIcon}>{feature.icon}</Text>
+                    <Ionicons name={feature.icon as any} size={24} color={feature.color} />
                   </View>
-                  <Text style={styles.arrow}>›</Text>
+                  <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
                 </View>
                 <Text style={styles.featureTitle}>{feature.title}</Text>
                 <Text style={styles.featureDescription}>{feature.description}</Text>
@@ -320,7 +317,7 @@ const HomeScreen = () => {
         >
           <View style={styles.serviceCentersContent}>
             <View style={styles.serviceIcon}>
-              <Text style={styles.serviceIconText}>🏢</Text>
+              <MaterialIcons name="business-center" size={28} color="#fff" />
             </View>
             <Text style={styles.serviceCentersTitle}>Trung tâm dịch vụ gần bạn</Text>
             <Text style={styles.serviceCentersSubtitle}>
@@ -328,10 +325,10 @@ const HomeScreen = () => {
             </Text>
             <TouchableOpacity
               style={styles.serviceCentersButton}
-              onPress={() => navigation.navigate('ServiceCenters')}
+              onPress={() => handleProtectedNavigate('ServiceCenters')}
             >
               <Text style={styles.serviceCentersButtonText}>Xem tất cả trung tâm</Text>
-              <Text style={styles.serviceCentersArrow}>→</Text>
+              <Ionicons name="arrow-forward" size={16} color="#fff" />
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -378,13 +375,15 @@ const HomeScreen = () => {
           <Text style={styles.finalCTASubtitle}>
             Trải nghiệm nền tảng toàn diện của EV CARE có thể tối ưu hóa hoạt động dịch vụ
           </Text>
-          <TouchableOpacity style={styles.finalCTAButton} onPress={() => navigation.navigate('Booking')}>
+          <TouchableOpacity
+            style={styles.finalCTAButton}
+            onPress={() => handleProtectedNavigate('Booking')}
+          >
             <Text style={styles.finalCTAButtonText}>Đặt lịch hẹn ngay</Text>
-            <Text style={styles.finalCTAArrow}>→</Text>
+            <Ionicons name="arrow-forward" size={18} color="#1a40b8" />
           </TouchableOpacity>
         </Animated.View>
       </Animated.ScrollView>
-      {/* Global bottom tab is rendered by RootNavigator -> BottomTabBar */}
     </>
   );
 };
@@ -474,9 +473,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#e2e8f0',
   },
-  profileIconText: {
-    fontSize: 20,
-  },
   profileIconImage: {
     width: 40,
     height: 40,
@@ -538,11 +534,6 @@ const styles = StyleSheet.create({
     fontFamily: 'System',
     marginRight: 8,
   },
-  ctaArrow: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
   quickActionsSection: {
     paddingHorizontal: 24,
     marginBottom: 32,
@@ -584,10 +575,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-  },
-  actionIcon: {
-    fontSize: 24,
-    color: '#fff',
   },
   actionTitle: {
     fontSize: 12,
@@ -634,14 +621,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  featureIcon: {
-    fontSize: 28,
-  },
-  arrow: {
-    fontSize: 24,
-    color: '#cbd5e1',
-    fontWeight: 'bold',
-  },
   featureTitle: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -686,10 +665,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  serviceIconText: {
-    fontSize: 28,
-    color: '#fff',
-  },
   serviceCentersTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -725,11 +700,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'System',
     marginRight: 8,
-  },
-  serviceCentersArrow: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   statsSection: {
     flexDirection: 'row',
@@ -818,56 +788,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'System',
     marginRight: 8,
-  },
-  finalCTAArrow: {
-    color: '#1a40b8',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  menuButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  menuIcon: {
-    fontSize: 24,
-    color: '#1e293b',
-    fontWeight: 'bold',
-  },
-  placeholder: {
-    width: 44,
-  },
-  bottomTabContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 72,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#e6e9ef',
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingBottom: 8,
-    zIndex: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-  tabButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabIcon: {
-    fontSize: 20,
-  },
-  tabLabel: {
-    fontSize: 11,
-    color: '#64748b',
-    marginTop: 2,
   },
 });
 

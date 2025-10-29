@@ -3,21 +3,19 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../service/store';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const BottomTabBar: React.FC = () => {
     const navigation = useNavigation<any>();
-
     const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
 
     const handlePress = (route: string) => {
-        // Home is always allowed
         if (route === 'Home') {
             navigation.navigate('Home');
             return;
         }
 
         if (!isAuthenticated) {
-            // redirect to login
             navigation.navigate('Auth', { screen: 'Login' });
             return;
         }
@@ -25,12 +23,10 @@ const BottomTabBar: React.FC = () => {
         navigation.navigate(route);
     };
 
-    const protectedRoutes = ['ManageVehicles', 'Booking', 'BookingHistory', 'PaymentHistory', 'Settings'];
-
     return (
         <View style={styles.container}>
             <TouchableOpacity style={styles.tabButton} onPress={() => handlePress('Home')}>
-                <Text style={styles.tabIcon}>🏠</Text>
+                <Icon name="home-outline" size={24} color="#64748b" style={styles.tabIcon} />
                 <Text style={styles.tabLabel}>Home</Text>
             </TouchableOpacity>
 
@@ -38,7 +34,7 @@ const BottomTabBar: React.FC = () => {
                 style={styles.tabButton}
                 onPress={() => handlePress('ManageVehicles')}
             >
-                <Text style={styles.tabIcon}>🚗</Text>
+                <Icon name="car-outline" size={24} color="#64748b" style={styles.tabIcon} />
                 <Text style={styles.tabLabel}>Xe</Text>
             </TouchableOpacity>
 
@@ -46,7 +42,7 @@ const BottomTabBar: React.FC = () => {
                 style={styles.tabButton}
                 onPress={() => handlePress('Booking')}
             >
-                <Text style={styles.tabIcon}>📅</Text>
+                <Icon name="calendar-blank-outline" size={24} color="#64748b" style={styles.tabIcon} />
                 <Text style={styles.tabLabel}>Booking</Text>
             </TouchableOpacity>
 
@@ -54,7 +50,7 @@ const BottomTabBar: React.FC = () => {
                 style={styles.tabButton}
                 onPress={() => handlePress('PaymentHistory')}
             >
-                <Text style={styles.tabIcon}>📜</Text>
+                <Icon name="history" size={24} color="#64748b" style={styles.tabIcon} />
                 <Text style={styles.tabLabel}>Lịch sử</Text>
             </TouchableOpacity>
 
@@ -62,7 +58,7 @@ const BottomTabBar: React.FC = () => {
                 style={styles.tabButton}
                 onPress={() => handlePress('Settings')}
             >
-                <Text style={styles.tabIcon}>⚙️</Text>
+                <Icon name="cog-outline" size={24} color="#64748b" style={styles.tabIcon} />
                 <Text style={styles.tabLabel}>Cài đặt</Text>
             </TouchableOpacity>
         </View>
@@ -96,12 +92,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     tabIcon: {
-        fontSize: 20,
+        marginBottom: 4,
     },
     tabLabel: {
         fontSize: 11,
         color: '#64748b',
-        marginTop: 2,
     },
 });
 
