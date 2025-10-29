@@ -141,7 +141,22 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
   };
 
   const handleCustomTimeChange = (time: string) => {
-    setCustomTime(time);
+    const digits = time.replace(/\D/g, '').slice(0, 4);
+    let hours = digits.slice(0, 2);
+    let minutes = digits.slice(2, 4);
+
+    if (hours.length === 2) {
+      const hNum = Math.min(Math.max(parseInt(hours || '0', 10), 0), 23);
+      hours = String(isNaN(hNum) ? 0 : hNum).padStart(2, '0');
+    }
+
+    if (minutes.length > 0) {
+      const mNum = Math.min(Math.max(parseInt(minutes || '0', 10), 0), 59);
+      minutes = String(isNaN(mNum) ? 0 : mNum).padStart(2, '0');
+    }
+
+    const formatted = minutes.length > 0 ? `${hours}:${minutes}` : hours;
+    setCustomTime(formatted);
     setSelectedTime('');
   };
 
@@ -219,7 +234,7 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
 
   return (
     <TouchableWithoutFeedback onPress={() => setShowTimeDropdown(false)}>
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: Math.max(insets.top - 16, 0) }]}>
         {/* Top Toast (same style as BookingHistory) */}
         {snackVisible ? (() => {
           const meta = {
@@ -408,6 +423,13 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
                       onChangeText={handleCustomTimeChange}
                       style={styles.customTimeInput}
                       keyboardType="numeric"
+                      maxLength={5}
+                      onBlur={() => {
+                        // Auto-complete minutes if only hours entered
+                        if (/^\d{2}$/.test(customTime)) {
+                          handleCustomTimeChange(`${customTime}:00`);
+                        }
+                      }}
                     />
                     <Text style={styles.customTimeNote}>
                       * Giờ đến sẽ được xác nhận lại với trung tâm
@@ -518,22 +540,24 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
                     },
                   ]}
                 >
-                  {(activeTimeDropdown === 'hour' ? hourItems : minuteItems).map((val) => {
-                    const isSelected = activeTimeDropdown === 'hour' ? selectedHour === val : selectedMinute === val;
-                    const onPress = activeTimeDropdown === 'hour' ? () => handlePickHour(val) : () => handlePickMinute(val);
-                    return (
-                      <TouchableOpacity
-                        key={val}
-                        style={[styles.timeDropdownItem, isSelected && styles.selectedTimeDropdownItem]}
-                        onPress={onPress}
-                      >
-                        <Text style={[styles.timeDropdownItemText, isSelected && styles.selectedTimeDropdownItemText]}>
-                          {val}
-                        </Text>
-                        {isSelected && <Icon name="checkmark" size={16} color="#1890ff" />}
-                      </TouchableOpacity>
-                    );
-                  })}
+                  <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={true}>
+                    {(activeTimeDropdown === 'hour' ? hourItems : minuteItems).map((val) => {
+                      const isSelected = activeTimeDropdown === 'hour' ? selectedHour === val : selectedMinute === val;
+                      const onPress = activeTimeDropdown === 'hour' ? () => handlePickHour(val) : () => handlePickMinute(val);
+                      return (
+                        <TouchableOpacity
+                          key={val}
+                          style={[styles.timeDropdownItem, isSelected && styles.selectedTimeDropdownItem]}
+                          onPress={onPress}
+                        >
+                          <Text style={[styles.timeDropdownItemText, isSelected && styles.selectedTimeDropdownItemText]}>
+                            {val}
+                          </Text>
+                          {isSelected && <Icon name="checkmark" size={16} color="#1890ff" />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
                 </View>
               </View>
             </TouchableWithoutFeedback>
@@ -585,7 +609,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingTop: 90, // Space for sticky header
+    paddingTop: 72, // Space for sticky header (reduced)
   },
   headerContainer: {
     backgroundColor: '#1890ff',
@@ -649,7 +673,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   summaryCard: {
-    margin: 16,
+    margin: 12,
     backgroundColor: '#f0f9ff',
     borderColor: '#bae6fd',
   },
@@ -657,7 +681,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   summaryContent: {
     gap: 8,
@@ -678,14 +702,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionCard: {
-    margin: 16,
+    margin: 12,
     marginTop: 0,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   dateTimeButton: {
     flexDirection: 'row',
@@ -694,8 +718,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderRadius: 8,
-    padding: 16,
-    gap: 12,
+    padding: 12,
+    gap: 8,
   },
   dateTimeButtonText: {
     flex: 1,
@@ -706,12 +730,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   paymentOptions: {
-    gap: 16,
+    gap: 12,
   },
   paymentOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: 10,
     backgroundColor: 'white',
     borderRadius: 8,
     borderWidth: 1,
@@ -733,11 +757,11 @@ const styles = StyleSheet.create({
   },
   navigationContainer: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 12,
     backgroundColor: 'white',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    gap: 12,
+    gap: 8,
   },
   backButton: {
     flex: 1,
@@ -766,7 +790,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     borderRadius: 8,
     padding: 4,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   timeModeButton: {
     flex: 1,
@@ -802,7 +826,7 @@ const styles = StyleSheet.create({
   },
   timeSelectorsRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   timeUnitButton: {
     flex: 1,
@@ -812,8 +836,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderRadius: 8,
-    padding: 16,
-    gap: 12,
+    padding: 12,
+    gap: 8,
   },
   timeDropdownText: {
     flex: 1,
@@ -854,13 +878,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderRadius: 8,
-    maxHeight: 260,
+    maxHeight: 280,
     overflow: 'hidden',
     elevation: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
+  },
+  timeScroll: {
+    maxHeight: 280,
   },
   timeDropdownItem: {
     flexDirection: 'row',

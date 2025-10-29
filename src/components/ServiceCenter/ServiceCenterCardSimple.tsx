@@ -7,7 +7,7 @@ import {
   Navigation,
   Camera
 } from 'lucide-react';
-import { ServiceCenter } from '../../interfaces/serviceCenter';
+import { ServiceCenter, Image as SCImage } from '../../types/serviceCenter';
 import RealTimeStatus from './RealTimeStatus';
 
 interface ServiceCenterCardSimpleProps {
@@ -56,7 +56,7 @@ const ServiceCenterCardSimple: React.FC<ServiceCenterCardSimpleProps> = ({
     window.open(googleMapsUrl, '_blank');
   };
 
-  const primaryImage = images?.find(img => img.isPrimary) || images?.[0];
+  const primaryImage = images?.find((img: SCImage) => img.isPrimary) || images?.[0];
 
   return (
     <Card
@@ -130,11 +130,7 @@ const ServiceCenterCardSimple: React.FC<ServiceCenterCardSimpleProps> = ({
 
         {/* Operating Hours */}
         <div className="mb-3">
-          <RealTimeStatus
-            operatingHours={operatingHours}
-            className="mb-1"
-            showNextOpening={false}
-          />
+          <RealTimeStatus operatingHours={operatingHours} showNextOpening={false} />
           <div className="text-sm text-gray-600 ml-6">
             {formatOperatingHours()}
           </div>

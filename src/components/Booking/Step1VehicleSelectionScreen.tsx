@@ -65,9 +65,22 @@ const Step1VehicleSelectionScreen: React.FC<Step1VehicleSelectionScreenProps> = 
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top - 16, 0) }]}>
       {!showCreateForm && (
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Add New Vehicle Button */}
+          <View style={styles.addVehicleSection}>
+            <TouchableOpacity
+              style={styles.addVehicleButton}
+              onPress={() => setShowCreateForm(!showCreateForm)}
+            >
+              <Icon name="add-circle-outline" size={24} color="#1890ff" />
+              <Text style={styles.addVehicleText}>
+                {showCreateForm ? 'Hủy thêm xe' : 'Thêm xe mới'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Existing Vehicles */}
           {vehicles.length > 0 && (
             <View style={styles.section}>
@@ -106,19 +119,6 @@ const Step1VehicleSelectionScreen: React.FC<Step1VehicleSelectionScreenProps> = 
               </View>
             </View>
           )}
-
-          {/* Add New Vehicle Button */}
-          <View style={styles.addVehicleSection}>
-            <TouchableOpacity
-              style={styles.addVehicleButton}
-              onPress={() => setShowCreateForm(!showCreateForm)}
-            >
-              <Icon name="add-circle-outline" size={24} color="#1890ff" />
-              <Text style={styles.addVehicleText}>
-                {showCreateForm ? 'Hủy thêm xe' : 'Thêm xe mới'}
-              </Text>
-            </TouchableOpacity>
-          </View>
         </ScrollView>
       )}
 
@@ -165,6 +165,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    
   },
   scrollView: {
     flex: 1,
@@ -173,11 +174,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 10,
   },
   header: {
     backgroundColor: '#1890ff',
-    padding: 20,
+    padding: 10,
     marginBottom: 16,
   },
   headerContent: {
@@ -196,22 +197,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 8,
     paddingHorizontal: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 12,
+    marginBottom: 6,
   },
   vehiclesGrid: {
-    gap: 12,
+    gap: 6,
   },
   vehicleCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#e5e7eb',
     shadowColor: '#000',
@@ -244,12 +245,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   vehicleDetails: {
     fontSize: 14,
     color: '#6b7280',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   vehicleSpecs: {
     fontSize: 12,
@@ -257,7 +258,7 @@ const styles = StyleSheet.create({
   },
   addVehicleSection: {
     paddingHorizontal: 16,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   addVehicleButton: {
     flexDirection: 'row',
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
     borderColor: '#d1d5db',
     borderStyle: 'dashed',
     borderRadius: 12,
-    padding: 20,
+    padding: 12,
   },
   addVehicleText: {
     fontSize: 16,
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   nextButtonContainer: {
-    padding: 16,
+    padding: 10,
     backgroundColor: 'white',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
@@ -313,7 +314,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1890ff',
   },
   nextButtonContent: {
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
 });
 

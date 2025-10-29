@@ -113,7 +113,7 @@ const Step3ServiceSelectionScreen: React.FC<Step3ServiceSelectionScreenProps> = 
 
   if (loading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: Math.max(insets.top - 16, 0) }]}>
         <View style={styles.loadingContainer}>
           <ProgressBar indeterminate />
           <Text style={styles.loadingText}>Đang tải...</Text>
@@ -246,7 +246,7 @@ const Step3ServiceSelectionScreen: React.FC<Step3ServiceSelectionScreenProps> = 
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top - 16, 0) }]}>
 
 
       {/* Search and Filter */}
@@ -446,8 +446,8 @@ const styles = StyleSheet.create({
   searchSection: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    marginBottom: 12,
-    gap: 8,
+    marginBottom: 8,
+    gap: 6,
   },
   searchInput: {
     flex: 1,
@@ -488,12 +488,13 @@ const styles = StyleSheet.create({
     color: '#1f2937',
   },
   listContent: {
-    paddingBottom: 16,
+    paddingBottom: 12,
+    paddingTop: 4,
   },
   serviceCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    marginBottom: 8,
+    marginBottom: 6,
     borderWidth: 1,
     borderColor: '#e5e7eb',
     shadowColor: '#000',
@@ -523,8 +524,8 @@ const styles = StyleSheet.create({
   serviceTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: 6,
+    gap: 6,
   },
   serviceName: {
     fontSize: 16,
@@ -548,7 +549,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   quickInfoText: {
     fontSize: 11,
@@ -561,15 +562,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   cardContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 12,
+    paddingBottom: 10,
   },
   serviceInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 6,
   },
   infoRow: {
     flexDirection: 'row',
@@ -596,7 +597,7 @@ const styles = StyleSheet.create({
   },
   expandedContent: {
     paddingHorizontal: 12,
-    paddingBottom: 8,
+    paddingBottom: 10,
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
   },
@@ -618,15 +619,15 @@ const styles = StyleSheet.create({
   },
   serviceDetails: {
     backgroundColor: '#f8fafc',
-    padding: 16,
+    padding: 12,
     borderRadius: 8,
-    marginTop: 8,
+    marginTop: 6,
   },
   detailsTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1f2937',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   detailsGrid: {
     gap: 8,
@@ -649,7 +650,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 48,
+    paddingVertical: 36,
   },
   emptyTitle: {
     fontSize: 18,
@@ -664,8 +665,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   inspectionCard: {
-    margin: 16,
-    borderWidth: 2,
+    margin: 12,
+    borderWidth: 1,
     borderColor: '#e5e7eb',
   },
   selectedInspectionCard: {
@@ -679,7 +680,7 @@ const styles = StyleSheet.create({
   },
   inspectionInfo: {
     flex: 1,
-    marginRight: 16,
+    marginRight: 12,
   },
   inspectionTitle: {
     fontSize: 18,
@@ -713,11 +714,11 @@ const styles = StyleSheet.create({
   },
   navigationContainer: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 12,
     backgroundColor: 'white',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    gap: 12,
+    gap: 8,
   },
   backButton: {
     flex: 1,

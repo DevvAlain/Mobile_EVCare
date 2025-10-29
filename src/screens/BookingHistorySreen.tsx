@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { View, FlatList, RefreshControl, Platform, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Text, Animated } from 'react-native';
+import { View, FlatList, RefreshControl, Platform, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Text, Animated, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
 import { Ionicons as Icon } from '@expo/vector-icons';
@@ -186,6 +186,11 @@ const BookingHistoryScreen: React.FC = () => {
   const [rescheduleErr, setRescheduleErr] = useState('');
   const [showRescheduleDatePicker, setShowRescheduleDatePicker] = useState(false);
   const [showTimeMenu, setShowTimeMenu] = useState(false);
+  const [timeMode, setTimeMode] = useState<'preset' | 'custom'>('preset');
+  const [customTime, setCustomTime] = useState('');
+  const timeButtonRef = useRef<any>(null);
+  const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+  const [timeAnchor, setTimeAnchor] = useState<{ x: number; y: number; width: number; height: number }>({ x: 0, y: 0, width: 0, height: 0 });
 
   // Cancel
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -313,6 +318,8 @@ const BookingHistoryScreen: React.FC = () => {
       setShowRescheduleDatePicker(false);
       setShowTimeMenu(false);
       setRescheduleOpen(true);
+      setTimeMode('preset');
+      setCustomTime('');
     } catch (e: any) {
       showToast(e?.message || 'Không thể tải chi tiết', 'error');
     }
@@ -327,7 +334,12 @@ const BookingHistoryScreen: React.FC = () => {
         setSlotLoading(true);
         const theDate = dayjs(newDate).format('YYYY-MM-DD');
         const res = await axiosInstance.get(BOOKING_TIME_SLOTS_ENDPOINT(centerId, theDate));
-        setSlots(res.data?.data?.availableSlots || []);
+        const nextSlots = res.data?.data?.availableSlots || [];
+        setSlots(nextSlots);
+        // Auto-switch to custom if no preset slots for selected day
+        if (Array.isArray(nextSlots) && nextSlots.length === 0) {
+          setTimeMode('custom');
+        }
       } catch (e: any) {
         showToast(e?.message || 'Không thể tải khung giờ', 'error');
       } finally { setSlotLoading(false); }
@@ -338,7 +350,13 @@ const BookingHistoryScreen: React.FC = () => {
   const onSubmitReschedule = async () => {
     if (!rescheduleFor) return;
     if (!newDate) return setRescheduleErr('Vui lòng chọn ngày mới');
-    if (!slot) return setRescheduleErr('Vui lòng chọn khung giờ mới');
+    // Normalize custom time to HH:MM
+    let finalTime = timeMode === 'custom' ? customTime : slot;
+    if (timeMode === 'custom') {
+      if (/^\d{2}$/.test(finalTime)) finalTime = `${finalTime}:00`;
+      if (!/^\d{2}:\d{2}$/.test(finalTime)) return setRescheduleErr('Giờ không hợp lệ (HH:MM)');
+    }
+    if (!finalTime) return setRescheduleErr('Vui lòng chọn hoặc nhập giờ đến');
 
     // Validate date is not in the past
     const today = new Date();
@@ -355,7 +373,7 @@ const BookingHistoryScreen: React.FC = () => {
       await dispatch(rescheduleBooking({
         bookingId: rescheduleFor._id,
         appointmentDate: dayjs(newDate).format('YYYY-MM-DD'),
-        appointmentTime: slot
+        appointmentTime: finalTime
       }) as any);
       showToast('Đổi lịch thành công!', 'success');
       setRescheduleOpen(false);
@@ -363,6 +381,26 @@ const BookingHistoryScreen: React.FC = () => {
     } catch (e: any) {
       showToast(e?.message || 'Đổi lịch thất bại', 'error');
     }
+  };
+
+  const handleCustomTimeChange = (time: string) => {
+    const digits = time.replace(/\D/g, '').slice(0, 4);
+    let hours = digits.slice(0, 2);
+    let minutes = digits.slice(2, 4);
+
+    if (hours.length === 2) {
+      const hNum = Math.min(Math.max(parseInt(hours || '0', 10), 0), 23);
+      hours = String(isNaN(hNum) ? 0 : hNum).padStart(2, '0');
+    }
+
+    if (minutes.length > 0) {
+      const mNum = Math.min(Math.max(parseInt(minutes || '0', 10), 0), 59);
+      minutes = String(isNaN(mNum) ? 0 : mNum).padStart(2, '0');
+    }
+
+    const formatted = minutes.length > 0 ? `${hours}:${minutes}` : hours;
+    setCustomTime(formatted);
+    setSlot('');
   };
 
   // Cancel flow
@@ -940,6 +978,22 @@ const BookingHistoryScreen: React.FC = () => {
                 </Text>
               </View>
 
+              {/* Toggle time selection mode */}
+              <View style={{ flexDirection: 'row', backgroundColor: '#f3f4f6', borderRadius: 8, padding: 4, marginBottom: 12 }}>
+                <TouchableOpacity
+                  style={{ flex: 1, paddingVertical: 8, borderRadius: 6, alignItems: 'center', backgroundColor: timeMode === 'preset' ? '#1890ff' : 'transparent' }}
+                  onPress={() => { setTimeMode('preset'); setRescheduleErr(''); }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: timeMode === 'preset' ? 'white' : '#6b7280' }}>Giờ có sẵn</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 1, paddingVertical: 8, borderRadius: 6, alignItems: 'center', backgroundColor: timeMode === 'custom' ? '#1890ff' : 'transparent' }}
+                  onPress={() => { setTimeMode('custom'); setRescheduleErr(''); }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: timeMode === 'custom' ? 'white' : '#6b7280' }}>Tự chọn giờ</Text>
+                </TouchableOpacity>
+              </View>
+
               {slotLoading ? (
                 <View style={{
                   backgroundColor: '#f8fafc',
@@ -961,29 +1015,31 @@ const BookingHistoryScreen: React.FC = () => {
                 </View>
               ) : (
                 <View>
-                  {slots.length > 0 ? (
-                    <Menu
-                      visible={showTimeMenu}
-                      onDismiss={() => setShowTimeMenu(false)}
-                      anchor={
-                        <TouchableOpacity
-                          style={{
-                            borderWidth: 2,
-                            borderColor: slot ? '#1890ff' : '#e2e8f0',
-                            borderRadius: 12,
-                            padding: 16,
-                            backgroundColor: slot ? '#f0f9ff' : 'white',
-                            flexDirection: 'row',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.05,
-                            shadowRadius: 4,
-                            elevation: 2,
-                          }}
-                          onPress={() => setShowTimeMenu(true)}
-                        >
+                  {timeMode === 'preset' && slots.length > 0 ? (
+                    <>
+                      <TouchableOpacity
+                        ref={timeButtonRef}
+                        style={{
+                          borderWidth: 1,
+                          borderColor: slot ? '#1890ff' : '#e2e8f0',
+                          borderRadius: 10,
+                          padding: 12,
+                          backgroundColor: slot ? '#f0f9ff' : 'white',
+                          flexDirection: 'row',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                        onPress={() => {
+                          if (timeButtonRef.current && (timeButtonRef.current as any).measureInWindow) {
+                            (timeButtonRef.current as any).measureInWindow((x: number, y: number, width: number, height: number) => {
+                              setTimeAnchor({ x, y, width, height });
+                              setShowTimeDropdown(true);
+                            });
+                          } else {
+                            setShowTimeDropdown(true);
+                          }
+                        }}
+                      >
                           <View style={{ flex: 1 }}>
                             <Text style={{
                               color: slot ? '#1890ff' : '#6b7280',
@@ -998,11 +1054,11 @@ const BookingHistoryScreen: React.FC = () => {
                               }
                             </Text>
                             {!slot && (
-                              <Text style={{
-                                color: '#9ca3af',
-                                fontSize: 12,
-                                marginTop: 2
-                              }}>
+                             <Text style={{
+                               color: '#9ca3af',
+                               fontSize: 11,
+                               marginTop: 2
+                             }}>
                                 Tap để xem các giờ đến có sẵn
                               </Text>
                             )}
@@ -1019,22 +1075,68 @@ const BookingHistoryScreen: React.FC = () => {
                             />
                           </View>
                         </TouchableOpacity>
-                      }
-                    >
-                      {slots.map((s) => (
-                        <Menu.Item
-                          key={`${s.startTime}-${s.endTime}`}
-                          onPress={() => {
-                            setSlot(s.startTime);
-                            setShowTimeMenu(false);
-                          }}
-                          title={`${formatTime12h(s.startTime)}`}
-                          style={{
-                            backgroundColor: slot === s.startTime ? '#f0f9ff' : 'transparent'
-                          }}
-                        />
-                      ))}
-                    </Menu>
+
+                      {showTimeDropdown && (
+                        <Portal>
+                          <TouchableOpacity
+                            activeOpacity={1}
+                            onPress={() => setShowTimeDropdown(false)}
+                            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                          >
+                            {(() => {
+                              const { height: screenH } = Dimensions.get('window');
+                              const dropdownHeight = Math.min(280, Math.max(44 * Math.min(slots.length, 6), 160));
+                              const below = timeAnchor.y + timeAnchor.height + dropdownHeight + 8 <= screenH;
+                              const top = below ? timeAnchor.y + timeAnchor.height + 8 : Math.max(timeAnchor.y - dropdownHeight - 8, 8);
+                              return (
+                                <View
+                                  style={{
+                                    position: 'absolute',
+                                    left: 16,
+                                    right: 16,
+                                    top,
+                                    backgroundColor: 'white',
+                                    borderWidth: 1,
+                                    borderColor: '#e5e7eb',
+                                    borderRadius: 8,
+                                    maxHeight: 280,
+                                    elevation: 12,
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.15,
+                                    shadowRadius: 8,
+                                    overflow: 'hidden'
+                                  }}
+                                >
+                                  <ScrollView style={{ maxHeight: 280 }}>
+                                    {slots.map((s) => (
+                                      <TouchableOpacity
+                                        key={`${s.startTime}-${s.endTime}`}
+                                        onPress={() => { setSlot(s.startTime); setShowTimeDropdown(false); }}
+                                        style={{ paddingVertical: 10, paddingHorizontal: 12, backgroundColor: slot === s.startTime ? '#f0f9ff' : 'white' }}
+                                      >
+                                        <Text style={{ fontSize: 14, color: '#1f2937' }}>{`${formatTime12h(s.startTime)}`}</Text>
+                                      </TouchableOpacity>
+                                    ))}
+                                  </ScrollView>
+                                </View>
+                              );
+                            })()}
+                          </TouchableOpacity>
+                        </Portal>
+                      )}
+                    </>
+                  ) : timeMode === 'custom' ? (
+                    <TextInput
+                      mode="outlined"
+                      label="Giờ đến (VD: 14:30)"
+                      placeholder="Nhập giờ bạn muốn đến"
+                      value={customTime}
+                      onChangeText={handleCustomTimeChange}
+                      keyboardType="numeric"
+                      maxLength={5}
+                      onBlur={() => { if (/^\d{2}$/.test(customTime)) handleCustomTimeChange(`${customTime}:00`); }}
+                    />
                   ) : (
                     <View style={{
                       backgroundColor: '#fef2f2',
@@ -1071,7 +1173,7 @@ const BookingHistoryScreen: React.FC = () => {
           {!!rescheduleErr && <HelperText type="error">{rescheduleErr}</HelperText>}
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12, gap: 8 }}>
             <Button onPress={() => setRescheduleOpen(false)}>Hủy</Button>
-            <Button icon="checkmark" onPress={onSubmitReschedule} loading={loading}>Xác nhận</Button>
+            <Button  onPress={onSubmitReschedule} loading={loading}>Xác nhận</Button>
           </View>
         </Modal>
 
