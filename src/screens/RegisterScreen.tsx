@@ -21,6 +21,7 @@ import { registerUser } from '../service/slices/authSlice';
 import { RootStackParamList, RegisterCredentials } from '../types';
 import { RootState } from '../service/store';
 import { AppDispatch } from '../service/store';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -281,9 +282,7 @@ export const RegisterScreen = () => {
                                         style={styles.eyeButton}
                                         onPress={() => setShowPassword(!showPassword)}
                                     >
-                                        <Text style={styles.eyeText}>
-                                            {showPassword ? '👁️' : '👁️‍🗨️'}
-                                        </Text>
+                                        <Icon name={showPassword ? 'eye' : 'eye-off'} size={22} color="#64748b" />
                                     </TouchableOpacity>
                                 </View>
                                 {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}

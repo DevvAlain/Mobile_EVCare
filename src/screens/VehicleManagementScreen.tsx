@@ -441,7 +441,7 @@ const VehicleManagementScreen = () => {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerContent}>
-                    <Text style={styles.headerTitle}>Quản lý xe</Text>
+                    {/* keep only subtitle here — the navigation header shows the main title */}
                     <Text style={styles.headerSubtitle}>{totalVehiclesText}</Text>
                 </View>
                 <TouchableOpacity style={styles.addButton} onPress={openAdd}>

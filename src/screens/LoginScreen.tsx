@@ -20,6 +20,7 @@ import { loginUser } from '../service/slices/authSlice';
 import { RootStackParamList } from '../types';
 import { RootState } from '../service/store';
 import { AppDispatch } from '../service/store';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // screen dimensions not currently used here
 
@@ -181,9 +182,11 @@ export const LoginScreen = () => {
                                         style={styles.eyeButton}
                                         onPress={() => setShowPassword(!showPassword)}
                                     >
-                                        <Text style={styles.eyeText}>
-                                            {showPassword ? '👁️' : '👁️‍🗨️'}
-                                        </Text>
+                                        <Icon
+                                            name={showPassword ? 'eye' : 'eye-off'}
+                                            size={22}
+                                            color="#64748b"
+                                        />
                                     </TouchableOpacity>
                                 </View>
                             </View>

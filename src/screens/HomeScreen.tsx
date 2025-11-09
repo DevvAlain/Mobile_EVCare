@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   heroBackground: {
-    backgroundColor: 'linear-gradient(135deg, #eaf0ff 0%, #ffffff 100%)',
+    backgroundColor: '#fff',
     borderRadius: 24,
     padding: 24,
     paddingVertical: 32,

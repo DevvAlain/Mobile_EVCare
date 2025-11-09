@@ -1,12 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../service/store';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const BottomTabBar: React.FC = () => {
-    const navigation = useNavigation<any>();
+interface Props {
+    activeRouteName?: string;
+    onNavigate?: (route: string) => void;
+}
+
+const BottomTabBar: React.FC<Props> = ({ activeRouteName = '', onNavigate }) => {
     const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
 
     // Hide tabs when logged in as a technician (role-based). This is more reliable
@@ -17,57 +20,42 @@ const BottomTabBar: React.FC = () => {
     }
 
     const handlePress = (route: string) => {
+        if (!onNavigate) return;
+
         if (route === 'Home') {
-            navigation.navigate('Home');
+            onNavigate('Home');
             return;
         }
 
         if (!isAuthenticated) {
-            navigation.navigate('Auth', { screen: 'Login' });
+            // navigate to Auth stack; Auth stack initial screen is Login
+            onNavigate('Auth');
             return;
         }
 
-        navigation.navigate(route);
+        onNavigate(route);
+    };
+
+    const renderTab = (route: string, iconName: string, label: string) => {
+        const focused = activeRouteName === route;
+        return (
+            <TouchableOpacity
+                style={[styles.tabButton, focused && styles.tabButtonFocused]}
+                onPress={() => handlePress(route)}
+            >
+                <Icon name={iconName} size={24} color={focused ? '#1a40b8' : '#64748b'} style={styles.tabIcon} />
+                <Text style={[styles.tabLabel, focused && styles.tabLabelFocused]}>{label}</Text>
+            </TouchableOpacity>
+        );
     };
 
     return (
         <View style={styles.container}>
-            <TouchableOpacity style={styles.tabButton} onPress={() => handlePress('Home')}>
-                <Icon name="home-outline" size={24} color="#64748b" style={styles.tabIcon} />
-                <Text style={styles.tabLabel}>Home</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={styles.tabButton}
-                onPress={() => handlePress('ManageVehicles')}
-            >
-                <Icon name="car-outline" size={24} color="#64748b" style={styles.tabIcon} />
-                <Text style={styles.tabLabel}>Xe</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={styles.tabButton}
-                onPress={() => handlePress('Booking')}
-            >
-                <Icon name="calendar-blank-outline" size={24} color="#64748b" style={styles.tabIcon} />
-                <Text style={styles.tabLabel}>Booking</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={styles.tabButton}
-                onPress={() => handlePress('PaymentHistory')}
-            >
-                <Icon name="history" size={24} color="#64748b" style={styles.tabIcon} />
-                <Text style={styles.tabLabel}>Lịch sử</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={styles.tabButton}
-                onPress={() => handlePress('Settings')}
-            >
-                <Icon name="cog-outline" size={24} color="#64748b" style={styles.tabIcon} />
-                <Text style={styles.tabLabel}>Cài đặt</Text>
-            </TouchableOpacity>
+            {renderTab('Home', 'home-outline', 'Home')}
+            {renderTab('ManageVehicles', 'car-outline', 'Xe')}
+            {renderTab('Booking', 'calendar-blank-outline', 'Booking')}
+            {renderTab('PaymentHistory', 'history', 'Lịch sử')}
+            {renderTab('Settings', 'cog-outline', 'Cài đặt')}
         </View>
     );
 };
@@ -98,12 +86,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    tabButtonFocused: {
+        backgroundColor: '#eef2ff',
+        borderRadius: 12,
+        marginHorizontal: 8,
+        paddingVertical: 6,
+    },
     tabIcon: {
         marginBottom: 4,
     },
     tabLabel: {
         fontSize: 11,
         color: '#64748b',
+    },
+    tabLabelFocused: {
+        color: '#1a40b8',
+        fontWeight: '600',
     },
 });
 

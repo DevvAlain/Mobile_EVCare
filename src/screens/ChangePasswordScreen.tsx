@@ -21,6 +21,7 @@ import { changePassword } from '../service/slices/authSlice';
 import { RootStackParamList } from '../types';
 import { RootState } from '../service/store';
 import { AppDispatch } from '../service/store';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -125,10 +126,6 @@ const ChangePasswordScreen = () => {
               },
             ]}
           >
-            {/* <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Text style={styles.backText}>←</Text>
-            </TouchableOpacity> */}
-
             <View style={styles.logoContainer}>
               <Text style={styles.logo}>EV CARE</Text>
               <Text style={styles.logoSubtitle}>Service Center</Text>
@@ -161,6 +158,9 @@ const ChangePasswordScreen = () => {
                     editable={!loading}
                     autoCapitalize="none"
                   />
+                  <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)}>
+                    <Icon name={showPassword ? 'eye' : 'eye-off'} size={20} color="#64748b" />
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -177,6 +177,9 @@ const ChangePasswordScreen = () => {
                     editable={!loading}
                     autoCapitalize="none"
                   />
+                  <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)}>
+                    <Icon name={showPassword ? 'eye' : 'eye-off'} size={20} color="#64748b" />
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -193,6 +196,9 @@ const ChangePasswordScreen = () => {
                     editable={!loading}
                     autoCapitalize="none"
                   />
+                  <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)}>
+                    <Icon name={showPassword ? 'eye' : 'eye-off'} size={20} color="#64748b" />
+                  </TouchableOpacity>
                 </View>
               </View>
 
