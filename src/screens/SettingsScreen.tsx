@@ -94,16 +94,7 @@ const SettingsScreen: React.FC = () => {
               left={props => <List.Icon {...props} icon="shield-lock" />}
               onPress={() => navigation.navigate('ChangePassword')}
             />
-            <Divider />
-            <List.Item
-              title="Thông báo"
-              description="Tùy chỉnh thông báo"
-              left={props => <List.Icon {...props} icon="bell" />}
-              right={() => (
-                <Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} />
-              )}
-              onPress={() => setNotificationsEnabled(!notificationsEnabled)}
-            />
+            {/* removed: Thông báo */}
           </List.Section>
         </View>
 
@@ -111,37 +102,9 @@ const SettingsScreen: React.FC = () => {
           <List.Section>
             <List.Subheader>Ứng dụng</List.Subheader>
             <List.Item
-              title="Chế độ tối"
-              left={props => <List.Icon {...props} icon="brightness-3" />}
-              right={() => <Switch value={isDark} onValueChange={(v) => {
-                setIsDark(v);
-                dispatch(setTheme(v ? 'dark' : 'light'));
-              }} />}
-              onPress={() => { const v = !isDark; setIsDark(v); dispatch(setTheme(v ? 'dark' : 'light')); }}
-            />
-            <Divider />
-            <List.Item
-              title="Ngôn ngữ"
-              description="Tiếng Việt"
-              left={props => <List.Icon {...props} icon="translate" />}
-              onPress={handleLanguage}
-            />
-            <Divider />
-            <List.Item
               title="Về ứng dụng"
               left={props => <List.Icon {...props} icon="information" />}
               onPress={handleAbout}
-            />
-          </List.Section>
-        </View>
-
-        <View style={styles.card}>
-          <List.Section>
-            <List.Subheader>Hỗ trợ</List.Subheader>
-            <List.Item
-              title="Trung tâm trợ giúp"
-              left={props => <List.Icon {...props} icon="help-circle" />}
-              onPress={() => Toast.show({ type: 'info', text1: 'Trợ giúp', text2: 'Mở trung tâm trợ giúp (placeholder)' })}
             />
             <Divider />
             <List.Item
@@ -157,6 +120,8 @@ const SettingsScreen: React.FC = () => {
             />
           </List.Section>
         </View>
+
+        {/* Support section removed to simplify settings UI */}
 
         {/* Đăng xuất / Đăng nhập ở cuối nội dung - giữ marginBottom lớn để không bị che bởi bottom tabs */}
         {isAuthenticated ? (

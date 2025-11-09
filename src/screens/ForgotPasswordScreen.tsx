@@ -83,6 +83,9 @@ export const ForgotPasswordScreen = () => {
 
                     {/* Header Section */}
                     <View style={styles.header}>
+                        <TouchableOpacity style={styles.backButtonTop} onPress={() => navigation.goBack()}>
+                            <Text style={styles.backTopText}>←</Text>
+                        </TouchableOpacity>
                         <View style={styles.logoContainer}>
                             <Text style={styles.logo}>EV CARE</Text>
                         </View>
@@ -313,6 +316,16 @@ const styles = StyleSheet.create({
     },
     backButtonTextBold: {
         color: '#3b82f6',
+        fontWeight: 'bold',
+    },
+    backButtonTop: {
+        alignSelf: 'flex-start',
+        marginBottom: 12,
+        padding: 8,
+    },
+    backTopText: {
+        color: '#fff',
+        fontSize: 24,
         fontWeight: 'bold',
     },
     footer: {

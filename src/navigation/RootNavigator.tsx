@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { NavigationContainer, createNavigationContainerRef } from "@react-navigation/native";
+import { NavigationContainer, createNavigationContainerRef, CommonActions } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Provider as PaperProvider } from "react-native-paper";
@@ -40,22 +40,78 @@ const AuthStack = () => {
 const RootNavigator = () => {
   const navigationRef = useRef(createNavigationContainerRef());
   const [showTabs, setShowTabs] = useState(true);
+  const [currentRouteName, setCurrentRouteName] = useState('');
+
+  const getActiveRouteName = (state: any): string => {
+    if (!state) return '';
+    const route = state.routes[state.index];
+    if (route.state) return getActiveRouteName(route.state);
+    return route.name;
+  };
 
   const handleStateChange = () => {
     try {
-      const currentRoute = navigationRef.current?.getCurrentRoute();
-      const currentName = currentRoute?.name ?? "";
-      const hideOnRoutes = ["Auth", "Login", "Register", "ForgotPassword"];
+      const ref = navigationRef.current as any;
+      let currentName = '';
+      if (ref && typeof ref.isReady === 'function' && ref.isReady()) {
+        const rootState = ref.getRootState?.();
+        currentName = rootState ? getActiveRouteName(rootState) : (ref.getCurrentRoute?.()?.name ?? '');
+      }
+      const hideOnRoutes = ['Auth', 'Login', 'Register', 'ForgotPassword', 'ChangePassword'];
       setShowTabs(!hideOnRoutes.includes(currentName));
+      setCurrentRouteName(currentName);
     } catch {
       // no-op
+    }
+  };
+
+  // set initial route name once navigation is ready
+  const handleReady = () => {
+    try {
+      const ref = navigationRef.current as any;
+      if (ref && typeof ref.isReady === 'function' && ref.isReady()) {
+        const rootState = ref.getRootState?.();
+        const currentName = rootState ? getActiveRouteName(rootState) : (ref.getCurrentRoute?.()?.name ?? '');
+        setCurrentRouteName(currentName);
+        const hideOnRoutes = ['Auth', 'Login', 'Register', 'ForgotPassword', 'ChangePassword'];
+        setShowTabs(!hideOnRoutes.includes(currentName));
+      }
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  const safeNavigate = (route: string) => {
+    try {
+      const ref = navigationRef.current as any;
+      if (ref && typeof ref.isReady === 'function' && ref.isReady()) {
+        const bottomRoutes = ['Home', 'ManageVehicles', 'Booking', 'PaymentHistory', 'Settings'];
+        // For main bottom-tab routes, reset root so the new screen appears immediately (no push animation)
+        if (bottomRoutes.includes(route)) {
+          if (typeof ref.resetRoot === 'function') {
+            ref.resetRoot({ index: 0, routes: [{ name: route }] });
+          } else {
+            // fallback to dispatch reset action
+            ref.dispatch(
+              CommonActions.reset({ index: 0, routes: [{ name: route as any }] })
+            );
+          }
+        } else {
+          ref.navigate(route as any);
+        }
+      } else {
+        // navigation not ready yet
+        console.warn('[RootNavigator] navigation not ready, ignoring navigate to', route);
+      }
+    } catch (err) {
+      console.warn('[RootNavigator] safeNavigate error', err);
     }
   };
 
   return (
     <SafeAreaProvider>
       <PaperProvider>
-        <NavigationContainer ref={navigationRef as any} onStateChange={handleStateChange}>
+        <NavigationContainer ref={navigationRef as any} onStateChange={handleStateChange} onReady={handleReady}>
           <Stack.Navigator
             initialRouteName="Home"
             screenOptions={{
@@ -136,11 +192,7 @@ const RootNavigator = () => {
           </Stack.Navigator>
 
           {/* Global bottom tabs */}
-          {showTabs && <BottomTabBar />}
-
-
-          {/* Global bottom tabs (customer/guest). The BottomTabBar itself will hide when a technician screen is active. */}
-          <BottomTabBar />
+          {showTabs && <BottomTabBar activeRouteName={currentRouteName} onNavigate={safeNavigate} />}
 
         </NavigationContainer>
       </PaperProvider>

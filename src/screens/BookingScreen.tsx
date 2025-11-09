@@ -147,8 +147,20 @@ const BookingScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { paddingTop: 0 }]}>
-      {/* Header with quick access to booking history */}
-      
+      {/* Header: Improved layout */}
+      <View style={styles.headerContainer}>
+        <View style={styles.headerMain}>
+          <Text style={styles.headerTitle}>Tạo lịch hẹn dịch vụ</Text>
+          <Text style={styles.headerSubtitle}>Chọn xe, trung tâm và dịch vụ</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.historyButton}
+          onPress={() => navigation.navigate('BookingHistory')}
+        >
+          <Icon name="time-outline" size={18} color="#1A40B8" />
+          <Text style={styles.historyButtonText}>Lịch sử</Text>
+        </TouchableOpacity>
+      </View>
 
 
       {/* Progress Steps - Horizontal Layout */}
@@ -241,13 +253,52 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#1A40B8',
     marginBottom: 4,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#EAF2FF',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
+  headerMain: {
+    flex: 1,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: '#334155',
+    marginTop: 4,
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  historyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A40B8',
+    marginLeft: 6,
+  },
+
   homeButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -357,6 +408,54 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#1890ff',
     fontWeight: '600',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    marginHorizontal: 12,
+    marginTop: 8,
+    alignItems: 'center',
+    gap: 12,
+  },
+  mainCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  mainCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  mainCardSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 4,
+  },
+  historyCard: {
+    width: 110,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  historyCardText: {
+    color: '#1A40B8',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
 
