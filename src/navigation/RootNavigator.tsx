@@ -17,13 +17,17 @@ import PaymentHistoryScreen from "../screens/Payment/PaymentHistorySreen";
 import ServiceCentersScreen from "../screens/ServiceCentersScreen";
 import ServiceCenterDetailScreen from "../screens/ServiceCenterDetailScreen";
 import BottomTabBar from "../components/BottomTabBar";
+import TechnicianBottomTabBar from "../components/Technician/TechnicianBottomTabBar";
 // Technician screens
 import TechnicianHomeScreen from "../screens/Technician/TechnicianHomeScreen";
 import TechnicianScheduleScreen from "../screens/Technician/ScheduleScreen";
+import TechnicianProfileScreen from "../screens/Technician/TechnicianProfileScreen";
 import TechnicianWorkProgressScreen from "../screens/Technician/WorkProgressScreen";
 import TechnicianChatScreen from "../screens/Technician/ChatScreen";
 import TechnicianHistoryScreen from "../screens/Technician/HistoryScreen";
 import TechnicianSettingsScreen from "../screens/Technician/SettingsScreen";
+import { useSelector } from "react-redux";
+import { RootState } from "../service/store";
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -41,6 +45,8 @@ const RootNavigator = () => {
   const navigationRef = useRef(createNavigationContainerRef());
   const [showTabs, setShowTabs] = useState(true);
   const [currentRouteName, setCurrentRouteName] = useState('');
+  const user = useSelector((state: RootState) => state.auth.user);
+  const isTechnician = user?.role === 'technician';
 
   const getActiveRouteName = (state: any): string => {
     if (!state) return '';
@@ -58,7 +64,9 @@ const RootNavigator = () => {
         currentName = rootState ? getActiveRouteName(rootState) : (ref.getCurrentRoute?.()?.name ?? '');
       }
       const hideOnRoutes = ['Auth', 'Login', 'Register', 'ForgotPassword', 'ChangePassword'];
-      setShowTabs(!hideOnRoutes.includes(currentName));
+      // Show tabs only if not in hide routes and user is authenticated
+      const shouldShowTabs = !hideOnRoutes.includes(currentName);
+      setShowTabs(shouldShowTabs);
       setCurrentRouteName(currentName);
     } catch {
       // no-op
@@ -86,8 +94,10 @@ const RootNavigator = () => {
       const ref = navigationRef.current as any;
       if (ref && typeof ref.isReady === 'function' && ref.isReady()) {
         const bottomRoutes = ['Home', 'ManageVehicles', 'Booking', 'PaymentHistory', 'Settings'];
+        const technicianBottomRoutes = ['TechnicianSchedule', 'TechnicianProfile'];
+
         // For main bottom-tab routes, reset root so the new screen appears immediately (no push animation)
-        if (bottomRoutes.includes(route)) {
+        if (bottomRoutes.includes(route) || technicianBottomRoutes.includes(route)) {
           if (typeof ref.resetRoot === 'function') {
             ref.resetRoot({ index: 0, routes: [{ name: route }] });
           } else {
@@ -182,17 +192,22 @@ const RootNavigator = () => {
               options={{ headerShown: false }}
             />
 
-            {/* Technician screens - available but not the initial route. */}
+            {/* Technician screens */}
             <Stack.Screen name="TechnicianHome" component={TechnicianHomeScreen} options={{ headerShown: false }} />
             <Stack.Screen name="TechnicianSchedule" component={TechnicianScheduleScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="TechnicianProfile" component={TechnicianProfileScreen} options={{ headerShown: false }} />
             <Stack.Screen name="TechnicianWorkProgress" component={TechnicianWorkProgressScreen} options={{ headerShown: false }} />
             <Stack.Screen name="TechnicianChat" component={TechnicianChatScreen} options={{ headerShown: false }} />
             <Stack.Screen name="TechnicianHistory" component={TechnicianHistoryScreen} options={{ headerShown: false }} />
             <Stack.Screen name="TechnicianSettings" component={TechnicianSettingsScreen} options={{ headerShown: false }} />
           </Stack.Navigator>
 
-          {/* Global bottom tabs */}
-          {showTabs && <BottomTabBar activeRouteName={currentRouteName} onNavigate={safeNavigate} />}
+          {/* Bottom tabs - show different tabs based on user role */}
+          {showTabs && isTechnician ? (
+            <TechnicianBottomTabBar activeRouteName={currentRouteName} onNavigate={safeNavigate} />
+          ) : showTabs && !isTechnician ? (
+            <BottomTabBar activeRouteName={currentRouteName} onNavigate={safeNavigate} />
+          ) : null}
 
         </NavigationContainer>
       </PaperProvider>

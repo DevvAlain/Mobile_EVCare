@@ -162,3 +162,7 @@ export const PAYOS_CANCEL_ENDPOINT = (orderCode: string) =>
   `${API_BASE_URL}/payment/${orderCode}/cancel`;
 
 export const VEHICLE_BRANDS_ENDPOINT = `${API_BASE_URL}/vehicle-models/brands/list`;
+
+// Parts endpoints
+export const PARTS_ENDPOINT = `${API_BASE_URL}/parts`;
+export const PARTS_BY_CATEGORY_ENDPOINT = (category: string) => `${API_BASE_URL}/parts/category/${category}`;

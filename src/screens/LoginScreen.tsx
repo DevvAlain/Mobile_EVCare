@@ -75,8 +75,8 @@ export const LoginScreen = () => {
                 const role = payload?.user?.role || payload?.role;
 
                 if (role === 'technician') {
-                    // Navigate into the technician UI
-                    navigation.reset({ index: 0, routes: [{ name: 'TechnicianHome' } as any] });
+                    // Navigate directly to Schedule screen
+                    navigation.reset({ index: 0, routes: [{ name: 'TechnicianSchedule' } as any] });
                 } else {
                     // Default: go to Home
                     navigation.reset({ index: 0, routes: [{ name: 'Home' } as any] });
