@@ -12,6 +12,7 @@ import vehicleReducer from "../slices/vehicleSlice";
 import serviceCenterReducer from "../slices/serviceCenterSilce.ts/serviceCenterSlice";
 import technicianReducer from "../technician/technicianSlice";
 import workProgressReducer from "../technician/workProgressSlice";
+import partsReducer from "../parts/partsSlice";
 
 const persistConfig = {
   key: "root",
@@ -29,6 +30,7 @@ const rootReducer = combineReducers({
   serviceCenter: serviceCenterReducer, // Added serviceCenter slice
   technician: technicianReducer,
   workProgress: workProgressReducer,
+  parts: partsReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

@@ -140,6 +140,7 @@ export type RootStackParamList = {
   // Technician routes
   TechnicianHome: undefined;
   TechnicianSchedule: undefined;
+  TechnicianProfile: undefined;
   TechnicianWorkProgress: undefined;
   TechnicianChat: undefined;
   TechnicianHistory: undefined;

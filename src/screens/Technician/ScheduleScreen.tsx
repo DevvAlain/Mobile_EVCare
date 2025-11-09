@@ -20,6 +20,9 @@ import {
 import Toast from "react-native-toast-message";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import CreateWorkProgressModal from "../../components/Technician/CreateWorkProgressModal";
+import WorkProgressDetailModal from "../../components/Technician/WorkProgressDetailModal";
+import { getProgressByAppointment } from "../../service/technician/workProgressSlice";
 
 const ScheduleScreen = () => {
     const navigation = useNavigation();
@@ -31,6 +34,32 @@ const ScheduleScreen = () => {
     const [today] = useState(dayjs());
     const [dayModalOpen, setDayModalOpen] = useState(false);
     const [selectedDay, setSelectedDay] = useState<dayjs.Dayjs | null>(null);
+    const [createProgressOpen, setCreateProgressOpen] = useState(false);
+    const [detailProgressOpen, setDetailProgressOpen] = useState(false);
+    const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
+    const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+    const { byAppointment } = useAppSelector((s) => s.workProgress);
+    const [progressExistSet, setProgressExistSet] = useState<Set<string>>(new Set());
+
+    // Function to ensure progress is checked (similar to web)
+    const ensureProgressChecked = async (appointmentId: string): Promise<boolean> => {
+        try {
+            const result = await dispatch(getProgressByAppointment(appointmentId));
+            if (getProgressByAppointment.fulfilled.match(result) && (result.payload as any)?.success) {
+                setProgressExistSet((prev) => new Set(prev).add(appointmentId));
+                return true;
+            }
+            // Not found or no success
+            setProgressExistSet((prev) => {
+                const copy = new Set(prev);
+                copy.delete(appointmentId);
+                return copy;
+            });
+            return false;
+        } catch {
+            return false;
+        }
+    };
 
     useEffect(() => {
         if (!user) return;
@@ -204,12 +233,6 @@ const ScheduleScreen = () => {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity 
-                    style={styles.backButton} 
-                    onPress={() => navigation.goBack()}
-                >
-                    <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
-                </TouchableOpacity>
                 <Text style={styles.title}>Lịch làm việc</Text>
             </View>
 
@@ -354,8 +377,62 @@ const ScheduleScreen = () => {
                     date={selectedDay}
                     schedulesByDate={schedulesByDate}
                     onClose={() => setDayModalOpen(false)}
+                    onCreateProgress={async (schedule: any, appointmentId: string | null) => {
+                        if (!appointmentId) {
+                            Toast.show({ type: 'warning', text1: 'Lịch này chưa gắn booking - không thể tạo tiến trình' });
+                            return;
+                        }
+                        const existed = await ensureProgressChecked(appointmentId);
+                        if (existed) {
+                            Toast.show({ type: 'info', text1: 'Booking đã có tiến trình.' });
+                            return;
+                        }
+                        setSelectedSchedule(schedule);
+                        setSelectedAppointmentId(appointmentId);
+                        setDayModalOpen(false);
+                        setCreateProgressOpen(true);
+                    }}
+                    onViewDetail={(schedule: any, appointmentId: string | null) => {
+                        setSelectedSchedule(schedule);
+                        setSelectedAppointmentId(appointmentId);
+                        setDayModalOpen(false);
+                        setDetailProgressOpen(true);
+                    }}
+                    byAppointment={byAppointment}
+                    progressExistSet={progressExistSet}
                 />
             </Modal>
+            <CreateWorkProgressModal
+                visible={createProgressOpen}
+                onClose={() => {
+                    setCreateProgressOpen(false);
+                    setSelectedSchedule(null);
+                    setSelectedAppointmentId(null);
+                }}
+                schedule={selectedSchedule}
+                appointmentId={selectedAppointmentId}
+                onSuccess={async () => {
+                    if (selectedAppointmentId) {
+                        await dispatch(getProgressByAppointment(selectedAppointmentId));
+                        setProgressExistSet((prev) => new Set(prev).add(selectedAppointmentId));
+                    }
+                }}
+            />
+            <WorkProgressDetailModal
+                visible={detailProgressOpen}
+                onClose={() => {
+                    setDetailProgressOpen(false);
+                    setSelectedSchedule(null);
+                    setSelectedAppointmentId(null);
+                }}
+                schedule={selectedSchedule}
+                appointmentId={selectedAppointmentId}
+                onRefresh={async () => {
+                    if (selectedAppointmentId) {
+                        await dispatch(getProgressByAppointment(selectedAppointmentId));
+                    }
+                }}
+            />
             <Modal visible={yearModalOpen} animationType="slide" transparent={true}>
                 <View style={styles.yearModalContainer}>
                     <View style={styles.yearModalContent}>
@@ -391,7 +468,17 @@ const ScheduleScreen = () => {
     );
 };
 
-const SafeDayModalContent = ({ date, schedulesByDate, onClose }: any) => {
+const SafeDayModalContent = ({
+    date,
+    schedulesByDate,
+    onClose,
+    onCreateProgress,
+    onViewDetail,
+    byAppointment,
+    progressExistSet,
+}: any) => {
+    const [selectedAppointmentIds, setSelectedAppointmentIds] = useState<Record<string, string>>({});
+
     if (!date) return null;
     const key = date.format("YYYY-MM-DD");
     const items = schedulesByDate[key] || [];
@@ -418,6 +505,17 @@ const SafeDayModalContent = ({ date, schedulesByDate, onClose }: any) => {
                         ? "Vắng"
                         : "Đã lên lịch";
 
+    const getAppointmentId = (item: any): string | null => {
+        const selected = selectedAppointmentIds[item._id];
+        if (selected) return selected;
+        return item.appointmentId || item.assignedAppointments?.[0]?._id || null;
+    };
+
+    const hasProgress = (appointmentId: string | null): boolean => {
+        if (!appointmentId) return false;
+        return (progressExistSet && progressExistSet.has(appointmentId)) || !!byAppointment[appointmentId];
+    };
+
     return (
         <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
@@ -433,22 +531,96 @@ const SafeDayModalContent = ({ date, schedulesByDate, onClose }: any) => {
                         <Text style={styles.emptyModalText}>Không có lịch trong ngày này</Text>
                     </View>
                 ) : (
-                    items.map((item: any) => (
-                        <View key={item._id} style={styles.modalScheduleItem}>
-                            <View style={styles.modalScheduleHeader}>
-                                <Text style={styles.modalShiftTime}>{`${item.shiftStart} - ${item.shiftEnd}`}</Text>
-                                <View style={[styles.modalStatus, { backgroundColor: statusColor(item.status) }]}>
-                                    <Text style={styles.modalStatusText}>{statusText(item.status)}</Text>
+                    items.map((item: any) => {
+                        const apptId = getAppointmentId(item);
+                        const hasBooking = !!apptId;
+                        const progressExists = hasProgress(apptId);
+                        const hasMultipleAppointments =
+                            Array.isArray(item.assignedAppointments) &&
+                            item.assignedAppointments.filter((a: any) => a.status !== 'cancelled').length > 1;
+
+                        return (
+                            <View key={item._id} style={styles.modalScheduleItem}>
+                                <View style={styles.modalScheduleHeader}>
+                                    <Text style={styles.modalShiftTime}>{`${item.shiftStart} - ${item.shiftEnd}`}</Text>
+                                    <View style={[styles.modalStatus, { backgroundColor: statusColor(item.status) }]}>
+                                        <Text style={styles.modalStatusText}>{statusText(item.status)}</Text>
+                                    </View>
+                                </View>
+                                <Text style={styles.modalCenterName}>{item.centerId?.name}</Text>
+                                <View style={styles.modalScheduleDetails}>
+                                    <Text style={styles.modalDetailText}>Trung tâm: {item.centerId?.name || "-"}</Text>
+                                    <Text style={styles.modalDetailText}>Trạng thái: {statusText(item.status)}</Text>
+                                    <Text style={styles.modalDetailText}>Ngày làm việc: {date.format("DD/MM/YYYY")}</Text>
+                                </View>
+
+                                {hasMultipleAppointments && (
+                                    <View style={styles.appointmentSelector}>
+                                        <Text style={styles.appointmentSelectorLabel}>Chọn giờ:</Text>
+                                        {item.assignedAppointments
+                                            .filter((a: any) => a.status !== 'cancelled')
+                                            .map((a: any) => (
+                                                <TouchableOpacity
+                                                    key={a._id}
+                                                    style={[
+                                                        styles.appointmentOption,
+                                                        selectedAppointmentIds[item._id] === a._id &&
+                                                        styles.appointmentOptionActive,
+                                                    ]}
+                                                    onPress={() => {
+                                                        setSelectedAppointmentIds({
+                                                            ...selectedAppointmentIds,
+                                                            [item._id]: a._id,
+                                                        });
+                                                    }}
+                                                >
+                                                    <Text
+                                                        style={[
+                                                            styles.appointmentOptionText,
+                                                            selectedAppointmentIds[item._id] === a._id &&
+                                                            styles.appointmentOptionTextActive,
+                                                        ]}
+                                                    >
+                                                        {a.appointmentTime?.startTime || ''}
+                                                        {a.appointmentTime?.endTime
+                                                            ? ` - ${a.appointmentTime.endTime}`
+                                                            : ''}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                    </View>
+                                )}
+
+                                <View style={styles.modalActions}>
+                                    <TouchableOpacity
+                                        style={[styles.modalActionButton, styles.detailButton]}
+                                        onPress={() => onViewDetail(item, apptId)}
+                                    >
+                                        <Text style={styles.modalActionButtonText}>Chi tiết</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.modalActionButton,
+                                            styles.createButton,
+                                            (!hasBooking || progressExists) && styles.modalActionButtonDisabled,
+                                        ]}
+                                        onPress={() => onCreateProgress(item, apptId)}
+                                        disabled={!hasBooking || progressExists}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.modalActionButtonText,
+                                                (!hasBooking || progressExists) &&
+                                                styles.modalActionButtonTextDisabled,
+                                            ]}
+                                        >
+                                            {progressExists ? 'Đã có tiến trình' : 'Tạo tiến trình'}
+                                        </Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
-                            <Text style={styles.modalCenterName}>{item.centerId?.name}</Text>
-                            <View style={styles.modalScheduleDetails}>
-                                <Text style={styles.modalDetailText}>Trung tâm: {item.centerId?.name || "-"}</Text>
-                                <Text style={styles.modalDetailText}>Trạng thái: {statusText(item.status)}</Text>
-                                <Text style={styles.modalDetailText}>Ngày làm việc: {date.format("DD/MM/YYYY")}</Text>
-                            </View>
-                        </View>
-                    ))
+                        );
+                    })
                 )}
             </ScrollView>
         </View>
@@ -467,12 +639,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         borderBottomWidth: 1,
         borderBottomColor: "#f0f0f0",
-        flexDirection: "row",
         alignItems: "center"
-    },
-    backButton: {
-        marginRight: 16,
-        padding: 4
     },
     title: {
         fontSize: 24,
@@ -887,7 +1054,63 @@ const styles = StyleSheet.create({
     modalDetailText: {
         fontSize: 12,
         color: "#999"
-    }
+    },
+    appointmentSelector: {
+        marginTop: 12,
+        marginBottom: 12,
+    },
+    appointmentSelectorLabel: {
+        fontSize: 12,
+        color: "#666",
+        marginBottom: 8,
+    },
+    appointmentOption: {
+        padding: 10,
+        borderRadius: 8,
+        backgroundColor: "#f5f5f5",
+        marginBottom: 8,
+    },
+    appointmentOptionActive: {
+        backgroundColor: "#eef2ff",
+        borderWidth: 1,
+        borderColor: "#1677ff",
+    },
+    appointmentOptionText: {
+        fontSize: 12,
+        color: "#666",
+    },
+    appointmentOptionTextActive: {
+        color: "#1677ff",
+        fontWeight: "600",
+    },
+    modalActions: {
+        flexDirection: "row",
+        gap: 8,
+        marginTop: 12,
+    },
+    modalActionButton: {
+        flex: 1,
+        padding: 12,
+        borderRadius: 8,
+        alignItems: "center",
+    },
+    detailButton: {
+        backgroundColor: "#1677ff",
+    },
+    createButton: {
+        backgroundColor: "#52c41a",
+    },
+    modalActionButtonDisabled: {
+        backgroundColor: "#d9d9d9",
+    },
+    modalActionButtonText: {
+        color: "#fff",
+        fontSize: 14,
+        fontWeight: "600",
+    },
+    modalActionButtonTextDisabled: {
+        color: "#999",
+    },
 });
 
 export default ScheduleScreen;
