@@ -36,12 +36,29 @@ const CompleteMaintenanceModal: React.FC<Props> = ({
     const handleSubmit = async () => {
         // Validation
         if (!workDone.trim()) {
-            Toast.show({ type: 'error', text1: 'Vui lòng nhập công việc đã làm' });
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Vui lòng nhập công việc đã làm'
+            });
             return;
         }
 
         if (workDone.trim().length < 10) {
-            Toast.show({ type: 'error', text1: 'Công việc đã làm phải có ít nhất 10 ký tự' });
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Công việc đã làm phải có ít nhất 10 ký tự'
+            });
+            return;
+        }
+
+        if (recommendations && recommendations.trim().length < 10) {
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Nếu có khuyến nghị, phải có ít nhất 10 ký tự'
+            });
             return;
         }
 
@@ -58,7 +75,11 @@ const CompleteMaintenanceModal: React.FC<Props> = ({
             ).unwrap();
 
             if (result?.success) {
-                Toast.show({ type: 'success', text1: 'Đã hoàn thành bảo dưỡng' });
+                Toast.show({
+                    type: 'success',
+                    text1: 'Thành công',
+                    text2: 'Đã hoàn thành bảo dưỡng'
+                });
                 onClose();
                 if (onSuccess) onSuccess();
                 // Reset form
@@ -66,12 +87,17 @@ const CompleteMaintenanceModal: React.FC<Props> = ({
                 setWorkDone('');
                 setRecommendations('');
             } else {
-                Toast.show({ type: 'error', text1: result?.message || 'Hoàn thành thất bại' });
+                Toast.show({
+                    type: 'error',
+                    text1: 'Lỗi',
+                    text2: result?.message || 'Không thể hoàn thành bảo dưỡng'
+                });
             }
         } catch (error: any) {
             Toast.show({
                 type: 'error',
-                text1: error?.message || 'Hoàn thành thất bại',
+                text1: 'Lỗi',
+                text2: error?.message || 'Không thể hoàn thành bảo dưỡng'
             });
         }
     };

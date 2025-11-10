@@ -10,7 +10,8 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { useAppDispatch, useAppSelector } from '../../service/store';
-import { submitInspectionQuote } from '../../service/technician/workProgressSlice';
+import { submitInspectionQuote, getProgressByAppointment } from '../../service/technician/workProgressSlice';
+import { fetchBookingDetails } from '../../service/slices/bookingSlice';
 import { fetchParts } from '../../service/parts/partsSlice';
 import Toast from 'react-native-toast-message';
 
@@ -98,9 +99,8 @@ const InspectionQuoteModal: React.FC<Props> = ({
         if (!vehicleCondition || !vehicleCondition.trim()) {
             Toast.show({
                 type: 'error',
-                text1: 'Lỗi xác thực',
-                text2: 'Vui lòng nhập tình trạng xe',
-                visibilityTime: 3000,
+                text1: 'Lỗi',
+                text2: 'Vui lòng nhập tình trạng xe'
             });
             return;
         }
@@ -108,9 +108,8 @@ const InspectionQuoteModal: React.FC<Props> = ({
         if (!diagnosisDetails || !diagnosisDetails.trim()) {
             Toast.show({
                 type: 'error',
-                text1: 'Lỗi xác thực',
-                text2: 'Vui lòng nhập chẩn đoán',
-                visibilityTime: 3000,
+                text1: 'Lỗi',
+                text2: 'Vui lòng nhập chẩn đoán'
             });
             return;
         }
@@ -120,9 +119,8 @@ const InspectionQuoteModal: React.FC<Props> = ({
         if (validItems.length === 0) {
             Toast.show({
                 type: 'error',
-                text1: 'Lỗi xác thực',
-                text2: 'Vui lòng thêm ít nhất một linh kiện',
-                visibilityTime: 3000,
+                text1: 'Lỗi',
+                text2: 'Vui lòng thêm ít nhất một linh kiện'
             });
             return;
         }
@@ -133,77 +131,82 @@ const InspectionQuoteModal: React.FC<Props> = ({
             if (!item.partId) {
                 Toast.show({
                     type: 'error',
-                    text1: 'Lỗi xác thực',
-                    text2: `Vui lòng chọn linh kiện cho mục ${i + 1}`,
-                    visibilityTime: 3000,
+                    text1: 'Lỗi',
+                    text2: `Vui lòng chọn linh kiện cho mục ${i + 1}`
                 });
                 return;
             }
             if (!item.quantity || item.quantity <= 0) {
                 Toast.show({
                     type: 'error',
-                    text1: 'Lỗi xác thực',
-                    text2: `Số lượng phải lớn hơn 0 cho mục ${i + 1}`,
-                    visibilityTime: 3000,
+                    text1: 'Lỗi',
+                    text2: `Số lượng phải lớn hơn 0 cho mục ${i + 1}`
                 });
                 return;
             }
             if (!item.unitPrice || item.unitPrice <= 0) {
                 Toast.show({
                     type: 'error',
-                    text1: 'Lỗi xác thực',
-                    text2: `Đơn giá phải lớn hơn 0 cho mục ${i + 1}`,
-                    visibilityTime: 3000,
+                    text1: 'Lỗi',
+                    text2: `Đơn giá phải lớn hơn 0 cho mục ${i + 1}`
                 });
                 return;
             }
         }
 
-        const items = validItems.map((it) => ({
-            partId: it.partId as string,
-            quantity: Number(it?.quantity || 0),
-            unitPrice: Number(it?.unitPrice || 0),
-            name: it?.name,
-        }));
-
-        // Calculate total quote amount from items
-        // Quote amount will be calculated by backend; do not send redundant total from client
-        const quoteAmount = items.reduce((sum, it) => sum + (Number(it.quantity || 0) * Number(it.unitPrice || 0)), 0);
-
         try {
+            // Build payload giống web
+            const items = validItems
+                .filter((it) => !!it?.partId)  // Lọc lại một lần nữa để đảm bảo
+                .map((it) => ({
+                    partId: it.partId as string,
+                    quantity: Number(it?.quantity || 0),
+                    unitPrice: Number(it?.unitPrice || 0),
+                    name: it?.name,
+                }));
+
+            const payloadToSend = {
+                vehicleCondition: vehicleCondition.trim(),
+                diagnosisDetails: diagnosisDetails.trim(),
+                inspectionNotes: inspectionNotes.trim(),
+                quoteDetails: { items },
+            };
+
             const result = await dispatch(
-                submitInspectionQuote({
-                    progressId,
-                    payload: {
-                        vehicleCondition: vehicleCondition.trim(),
-                        diagnosisDetails: diagnosisDetails.trim(),
-                        inspectionNotes: inspectionNotes.trim(),
-                        // Do not include quoteAmount to match web frontend (server calculates total)
-                        quoteDetails: { items },
-                    },
-                })
+                submitInspectionQuote({ progressId, payload: payloadToSend })
             ).unwrap();
 
             if (result?.success) {
-                Toast.show({
-                    type: 'success',
-                    text1: 'Thành công',
-                    text2: 'Đã gửi báo giá',
-                    visibilityTime: 2000,
-                });
+                Toast.show({ type: 'success', text1: 'Thành công', text2: 'Đã gửi báo giá' });
+
+                const apptId =
+                    typeof result?.data?.appointmentId === 'string'
+                        ? result.data.appointmentId
+                        : result?.data?.appointmentId?._id;
+
+                if (apptId) {
+                    await dispatch(getProgressByAppointment(apptId));
+                    // Also refresh booking details in booking slice (helps local UI / debugging)
+                    try {
+                        await dispatch(fetchBookingDetails(apptId));
+                    } catch (e) {
+                        // ignore fetch booking details errors
+                    }
+                }
+
                 // Reset form
                 setVehicleCondition('');
                 setDiagnosisDetails('');
                 setInspectionNotes('');
                 setQuoteItems([]);
+
                 onClose();
                 if (onSuccess) onSuccess();
             } else {
                 Toast.show({
                     type: 'error',
                     text1: 'Lỗi',
-                    text2: result?.message || 'Gửi báo giá thất bại',
-                    visibilityTime: 3000,
+                    text2: result?.message || 'Gửi báo giá thất bại'
                 });
             }
         } catch (error: any) {
@@ -214,8 +217,7 @@ const InspectionQuoteModal: React.FC<Props> = ({
             Toast.show({
                 type: 'error',
                 text1: 'Lỗi',
-                text2: errorMessage,
-                visibilityTime: 4000,
+                text2: errorMessage
             });
         }
     };

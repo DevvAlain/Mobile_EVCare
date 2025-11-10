@@ -56,17 +56,17 @@ const CreateWorkProgressModal: React.FC<Props> = ({
             // Prefill serviceDate and startTime from booking if available (similar to web)
             let serviceDateValue: Date | undefined;
             let startTimeValue: Date | undefined;
-            
+
             // Find the selected appointment
-            const selectedAppt = schedule.assignedAppointments?.find((a: any) => a._id === appointmentId) 
+            const selectedAppt = schedule.assignedAppointments?.find((a: any) => a._id === appointmentId)
                 || schedule.assignedAppointments?.[0];
             const aTime = selectedAppt?.appointmentTime as { date?: string; startTime?: string } | undefined;
             const dateISO = aTime?.date || schedule.workDate;
-            
+
             if (dateISO) {
                 serviceDateValue = new Date(dateISO);
                 setServiceDate(serviceDateValue);
-                
+
                 const start = aTime?.startTime;
                 if (start) {
                     const [hh, mm] = start.split(':');
@@ -81,7 +81,7 @@ const CreateWorkProgressModal: React.FC<Props> = ({
                 setServiceDate(new Date(schedule.workDate));
                 setStartTime(new Date());
             }
-            
+
             // Reset form when opening
             setMilestones([]);
             setNotes('');
@@ -90,7 +90,11 @@ const CreateWorkProgressModal: React.FC<Props> = ({
 
     const handleAddMilestone = () => {
         if (!milestoneName.trim() || !milestoneDesc.trim()) {
-            Toast.show({ type: 'error', text1: 'Vui lòng nhập đầy đủ thông tin mốc tiến độ' });
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Vui lòng nhập đầy đủ thông tin mốc tiến độ'
+            });
             return;
         }
         setMilestones([...milestones, { name: milestoneName, description: milestoneDesc }]);
@@ -105,24 +109,40 @@ const CreateWorkProgressModal: React.FC<Props> = ({
     const handleSubmit = async () => {
         // Validation
         if (!appointmentId || !user) {
-            Toast.show({ type: 'error', text1: 'Thiếu thông tin cần thiết' });
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Thiếu thông tin cần thiết'
+            });
             return;
         }
 
         if (!serviceDate) {
-            Toast.show({ type: 'error', text1: 'Vui lòng chọn ngày dịch vụ' });
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Vui lòng chọn ngày dịch vụ'
+            });
             return;
         }
 
         if (!startTime) {
-            Toast.show({ type: 'error', text1: 'Vui lòng chọn thời điểm bắt đầu' });
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Vui lòng chọn thời điểm bắt đầu'
+            });
             return;
         }
 
         // Validate milestones if any
         const invalidMilestones = milestones.filter(m => !m.name.trim() || !m.description.trim());
         if (invalidMilestones.length > 0) {
-            Toast.show({ type: 'error', text1: 'Vui lòng nhập đầy đủ thông tin cho các mốc tiến độ' });
+            Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Vui lòng nhập đầy đủ thông tin cho các mốc tiến độ'
+            });
             return;
         }
 
@@ -139,7 +159,11 @@ const CreateWorkProgressModal: React.FC<Props> = ({
             // Double check progress doesn't exist before creating (similar to web)
             const checkResult = await dispatch(getProgressByAppointment(appointmentId));
             if (getProgressByAppointment.fulfilled.match(checkResult) && (checkResult.payload as any)?.success) {
-                Toast.show({ type: 'info', text1: 'Booking đã có tiến trình.' });
+                Toast.show({
+                    type: 'info',
+                    text1: 'Thông báo',
+                    text2: 'Booking đã có tiến trình.'
+                });
                 onClose();
                 if (onSuccess) onSuccess();
                 return;
@@ -147,7 +171,11 @@ const CreateWorkProgressModal: React.FC<Props> = ({
 
             const result = await dispatch(createWorkProgress(payload)).unwrap();
             if (result?.success) {
-                Toast.show({ type: 'success', text1: 'Tạo tiến trình thành công' });
+                Toast.show({
+                    type: 'success',
+                    text1: 'Thành công',
+                    text2: 'Đã tạo tiến trình mới'
+                });
                 // Refresh progress
                 await dispatch(getProgressByAppointment(appointmentId));
                 onClose();
@@ -156,12 +184,17 @@ const CreateWorkProgressModal: React.FC<Props> = ({
                 setMilestones([]);
                 setNotes('');
             } else {
-                Toast.show({ type: 'error', text1: result?.message || 'Tạo tiến trình thất bại' });
+                Toast.show({
+                    type: 'error',
+                    text1: 'Lỗi',
+                    text2: result?.message || 'Không thể tạo tiến trình'
+                });
             }
         } catch (error: any) {
             Toast.show({
                 type: 'error',
-                text1: error?.message || 'Tạo tiến trình thất bại',
+                text1: 'Lỗi',
+                text2: error?.message || 'Không thể tạo tiến trình'
             });
         }
     };

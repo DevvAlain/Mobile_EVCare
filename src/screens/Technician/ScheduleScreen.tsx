@@ -161,7 +161,24 @@ const ScheduleScreen = () => {
         return keys;
     }, [schedulesByDate]);
 
-    const openDayModal = (dateKey: string) => {
+    const openDayModal = async (dateKey: string) => {
+        // Pre-check progress for all appointments on that date so UI reflects existing progress
+        try {
+            const items = schedulesByDate[dateKey] || [];
+            const ids = new Set<string>();
+            items.forEach((it: any) => {
+                if (it.appointmentId) ids.add(it.appointmentId);
+                if (Array.isArray(it.assignedAppointments)) {
+                    it.assignedAppointments.forEach((a: any) => {
+                        if (a?._id) ids.add(a._id);
+                    });
+                }
+            });
+            // Fire all checks in parallel but don't block UI for too long
+            await Promise.all(Array.from(ids).map((id) => ensureProgressChecked(id)));
+        } catch (e) {
+            // ignore errors - we'll still open modal
+        }
         setSelectedDay(dayjs(dateKey));
         setDayModalOpen(true);
     };
