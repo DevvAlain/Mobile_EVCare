@@ -47,9 +47,27 @@ const WorkProgressDetailModal: React.FC<Props> = ({
     }, [appointmentId]);
 
     useEffect(() => {
-        if (visible && selectedAppointmentId) {
-            dispatch(getProgressByAppointment(selectedAppointmentId));
-        }
+        const loadProgress = async () => {
+            if (visible && selectedAppointmentId) {
+                try {
+                    const result = await dispatch(getProgressByAppointment(selectedAppointmentId));
+                    if (!getProgressByAppointment.fulfilled.match(result)) {
+                        Toast.show({
+                            type: 'error',
+                            text1: 'Lỗi',
+                            text2: 'Không thể tải thông tin tiến trình'
+                        });
+                    }
+                } catch (error: any) {
+                    Toast.show({
+                        type: 'error',
+                        text1: 'Lỗi',
+                        text2: error?.message || 'Không thể tải thông tin tiến trình'
+                    });
+                }
+            }
+        };
+        loadProgress();
     }, [visible, selectedAppointmentId, dispatch]);
 
     const handleStartMaintenance = async () => {
@@ -57,7 +75,11 @@ const WorkProgressDetailModal: React.FC<Props> = ({
         try {
             const result = await dispatch(startMaintenance(progress._id)).unwrap();
             if (result?.success) {
-                Toast.show({ type: 'success', text1: 'Bắt đầu bảo dưỡng' });
+                Toast.show({
+                    type: 'success',
+                    text1: 'Thành công',
+                    text2: 'Đã bắt đầu bảo dưỡng'
+                });
                 if (selectedAppointmentId) {
                     await dispatch(getProgressByAppointment(selectedAppointmentId));
                 }
@@ -65,13 +87,15 @@ const WorkProgressDetailModal: React.FC<Props> = ({
             } else {
                 Toast.show({
                     type: 'error',
-                    text1: result?.message || 'Không thể bắt đầu bảo dưỡng',
+                    text1: 'Lỗi',
+                    text2: result?.message || 'Không thể bắt đầu bảo dưỡng'
                 });
             }
         } catch (error: any) {
             Toast.show({
                 type: 'error',
-                text1: error?.message || 'Không thể bắt đầu bảo dưỡng',
+                text1: 'Lỗi',
+                text2: error?.message || 'Không thể bắt đầu bảo dưỡng'
             });
         }
     };
@@ -79,6 +103,8 @@ const WorkProgressDetailModal: React.FC<Props> = ({
     const handleQuoteSuccess = async () => {
         if (selectedAppointmentId) {
             await dispatch(getProgressByAppointment(selectedAppointmentId));
+            // Đóng modal quote sau khi cập nhật thành công
+            setQuoteOpen(false);
         }
         if (onRefresh) onRefresh();
     };
@@ -92,24 +118,56 @@ const WorkProgressDetailModal: React.FC<Props> = ({
 
     const canSendQuote = () => {
         if (!progress) return false;
+
         const progressStatus = progress.currentStatus || '';
         const currentAppt = Array.isArray(schedule?.assignedAppointments)
             ? schedule.assignedAppointments.find((a: any) => a._id === selectedAppointmentId) ||
             schedule.assignedAppointments[0]
             : undefined;
         const apptStatus = currentAppt?.status || '';
-        // Disable if appointment itself is completed
+
+        // Disable if appointment is completed
         if (apptStatus === 'completed') return false;
-        // If progress is completed but appointment is maintenance_completed, allow sending again
+
+        // Allow re-sending quote if progress is completed but appointment is still in maintenance
         if (progressStatus === 'completed' && apptStatus === 'maintenance_completed') return true;
-        // Otherwise disable only when progress is completed
-        return progressStatus !== 'completed';
+
+        // Disable if progress has a status indicating later stages
+        const laterStages = ['in_progress', 'completed', 'delayed'];
+        if (laterStages.includes(progressStatus)) return false;
+
+        return true;
     };
 
+    const getQuoteErrorMessage = () => {
+        if (!progress) {
+            return 'Vui lòng tạo tiến trình trước khi gửi báo giá';
+        }
+
+        const progressStatus = progress.currentStatus || '';
+        const currentAppt = Array.isArray(schedule?.assignedAppointments)
+            ? schedule.assignedAppointments.find((a: any) => a._id === selectedAppointmentId) ||
+            schedule.assignedAppointments[0]
+            : undefined;
+        const apptStatus = currentAppt?.status || '';
+
+        if (apptStatus === 'completed') {
+            return 'Booking đã hoàn thành';
+        }
+
+        const laterStages = ['in_progress', 'completed', 'delayed'];
+        if (laterStages.includes(progressStatus)) {
+            return 'Tiến trình đã qua giai đoạn báo giá';
+        }
+
+        return '';
+    };
     const canStartMaintenance = () => {
         if (!progress) return false;
         const status = progress.currentStatus || '';
         const maintenanceStartedOrBeyond = ['in_progress', 'paused', 'completed', 'delayed'].includes(status);
+        if (maintenanceStartedOrBeyond) return false;
+
         // Allow starting maintenance only when quote is approved (or work already approved via appointment data)
         const quoteApproved =
             progress?.quote?.quoteStatus === 'approved' ||
@@ -117,17 +175,55 @@ const WorkProgressDetailModal: React.FC<Props> = ({
                 progress?.appointmentId?.inspectionAndQuote?.quoteStatus === 'approved') ||
             status === 'quote_approved';
 
-        return !maintenanceStartedOrBeyond && !!quoteApproved;
+        if (!quoteApproved) return false;
+
+        return true;
     };
 
     const canComplete = () => {
-        return progress?.currentStatus === 'in_progress';
+        if (!progress) return false;
+        return progress.currentStatus === 'in_progress';
     };
 
-    const currentAppointment = Array.isArray(schedule?.assignedAppointments)
+    const getCompleteErrorMessage = () => {
+        if (!progress) {
+            return 'Vui lòng tạo tiến trình trước';
+        }
+
+        if (progress.currentStatus !== 'in_progress') {
+            return 'Tiến trình phải ở trạng thái đang thực hiện';
+        }
+
+        return '';
+    }; const currentAppointment = Array.isArray(schedule?.assignedAppointments)
         ? schedule.assignedAppointments.find((a: any) => a._id === selectedAppointmentId) ||
         schedule.assignedAppointments[0]
         : undefined;
+
+    const getStartMaintenanceErrorMessage = () => {
+        if (!progress) {
+            return 'Vui lòng tạo tiến trình trước';
+        }
+
+        const status = progress.currentStatus || '';
+        const maintenanceStartedOrBeyond = ['in_progress', 'paused', 'completed', 'delayed'].includes(status);
+
+        if (maintenanceStartedOrBeyond) {
+            return 'Bảo dưỡng đã được bắt đầu hoặc hoàn thành';
+        }
+
+        const quoteApproved =
+            progress?.quote?.quoteStatus === 'approved' ||
+            (typeof progress?.appointmentId === 'object' &&
+                progress?.appointmentId?.inspectionAndQuote?.quoteStatus === 'approved') ||
+            status === 'quote_approved';
+
+        if (!quoteApproved) {
+            return 'Báo giá chưa được phê duyệt';
+        }
+
+        return '';
+    };
 
     const getProgressStatusColor = (status?: string) =>
         status === 'in_progress'
@@ -291,7 +387,18 @@ const WorkProgressDetailModal: React.FC<Props> = ({
                                                 styles.actionButton,
                                                 !canSendQuote() && styles.actionButtonDisabled,
                                             ]}
-                                            onPress={() => setQuoteOpen(true)}
+                                            onPress={() => {
+                                                const errorMessage = getQuoteErrorMessage();
+                                                if (errorMessage) {
+                                                    Toast.show({
+                                                        type: 'info',
+                                                        text1: 'Thông báo',
+                                                        text2: errorMessage
+                                                    });
+                                                    return;
+                                                }
+                                                setQuoteOpen(true);
+                                            }}
                                             disabled={!canSendQuote()}
                                         >
                                             <Text
@@ -307,7 +414,18 @@ const WorkProgressDetailModal: React.FC<Props> = ({
                                         {canStartMaintenance() && (
                                             <TouchableOpacity
                                                 style={styles.actionButton}
-                                                onPress={handleStartMaintenance}
+                                                onPress={() => {
+                                                    const errorMessage = getStartMaintenanceErrorMessage();
+                                                    if (errorMessage) {
+                                                        Toast.show({
+                                                            type: 'info',
+                                                            text1: 'Thông báo',
+                                                            text2: errorMessage
+                                                        });
+                                                        return;
+                                                    }
+                                                    handleStartMaintenance();
+                                                }}
                                             >
                                                 <Text style={styles.actionButtonText}>
                                                     Bắt đầu bảo dưỡng
@@ -318,7 +436,18 @@ const WorkProgressDetailModal: React.FC<Props> = ({
                                         {canComplete() && (
                                             <TouchableOpacity
                                                 style={[styles.actionButton, styles.completeButton]}
-                                                onPress={() => setCompleteOpen(true)}
+                                                onPress={() => {
+                                                    const errorMessage = getCompleteErrorMessage();
+                                                    if (errorMessage) {
+                                                        Toast.show({
+                                                            type: 'info',
+                                                            text1: 'Thông báo',
+                                                            text2: errorMessage
+                                                        });
+                                                        return;
+                                                    }
+                                                    setCompleteOpen(true);
+                                                }}
                                             >
                                                 <Text style={styles.actionButtonText}>Hoàn thành</Text>
                                             </TouchableOpacity>
