@@ -234,7 +234,7 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
 
   return (
     <TouchableWithoutFeedback onPress={() => setShowTimeDropdown(false)}>
-      <View style={[styles.container, { paddingTop: Math.max(insets.top - 16, 0) }]}>
+      <View style={[styles.container, { paddingTop: Math.max(insets.top - 16, 0) }]}> 
         {/* Top Toast (same style as BookingHistory) */}
         {snackVisible ? (() => {
           const meta = {
@@ -254,29 +254,23 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
             </View>
           );
         })() : null}
-        {/* Sticky Header with Payment Info */}
-        <View style={[styles.headerContainer, styles.stickyHeader]}>
-          <View style={styles.headerContent}>
-            <View style={styles.headerIconWrapper}>
-              <Icon name="flash-outline" size={20} color="#1890ff" />
-            </View>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>Đặt Lịch Nhanh Nhất</Text>
-              <Text style={styles.headerSubtitle}>
-                <Text style={styles.highlightText}>Cọc 20%</Text> trước • <Text style={styles.highlightText}>80%</Text> sau
-              </Text>
-            </View>
-            <View style={styles.headerBadge}>
-              <Text style={styles.headerBadgeText}>Nhanh Nhất</Text>
-            </View>
-          </View>
-        </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
           {/* Booking Summary */}
+          <Card.Content>
+             <View style={styles.depositHeader}>
+               <Text style={styles.depositTitle}>Khi thanh toán trực tuyến</Text>
+            <Text style={styles.depositSubtitle}>
+            Bạn chỉ cần thanh toán 20% giá trị dịch vụ.  
+            Số tiền còn lại sẽ thanh toán tại trung tâm.
+            </Text>
+            </View>
+            </Card.Content>
           <Card style={styles.summaryCard}>
+            
             <Card.Content>
+             
               <Text style={styles.summaryTitle}>Thông tin đặt lịch</Text>
               <View style={styles.summaryContent}>
                 <View style={styles.summaryRow}>
@@ -503,22 +497,26 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
         </ScrollView>
 
         {/* Navigation */}
-        <View style={[styles.navigationContainer, { paddingBottom: insets.bottom + 60 }]}>
+        <View style={[styles.navigationContainer, { paddingBottom: insets.bottom + 50 }]}>
           <Button
             mode="outlined"
+            compact
             onPress={onPrev}
             style={styles.backButton}
             contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
           >
             Quay lại
           </Button>
           <Button
             mode="contained"
+            compact
             onPress={handleCreateBooking}
             loading={createBookingLoading}
             disabled={!selectedDate || (!selectedTime && !customTime)}
             style={styles.createButton}
             contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
           >
             Hoàn tất đặt lịch
           </Button>
@@ -609,68 +607,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingTop: 72, // Space for sticky header (reduced)
-  },
-  headerContainer: {
-    backgroundColor: '#1890ff',
-    margin: 16,
-    borderRadius: 16,
-    shadowColor: '#1890ff',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  stickyHeader: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    right: 16,
-    zIndex: 1000,
-    margin: 0,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
-  headerIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: 'white',
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '500',
-  },
-  highlightText: {
-    color: 'white',
-    fontWeight: '700',
-  },
-  headerBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  headerBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'white',
   },
   summaryCard: {
     margin: 12,
@@ -700,6 +636,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1f2937',
     flex: 1,
+  },
+   depositHeader: {
+    backgroundColor: "#E6F4FF",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#BBDFFF",
+  },
+
+  depositTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1677FF",
+  },
+
+  depositSubtitle: {
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#444",
   },
   sectionCard: {
     margin: 12,
@@ -757,11 +714,11 @@ const styles = StyleSheet.create({
   },
   navigationContainer: {
     flexDirection: 'row',
-    padding: 12,
+    padding: 6,
     backgroundColor: 'white',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    gap: 8,
+    gap: 6,
   },
   backButton: {
     flex: 1,
@@ -771,7 +728,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#1890ff',
   },
   buttonContent: {
-    paddingVertical: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  buttonLabel: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   modalContent: {
     backgroundColor: 'white',

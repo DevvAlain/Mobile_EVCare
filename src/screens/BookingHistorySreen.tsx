@@ -466,112 +466,59 @@ const BookingHistoryScreen: React.FC = () => {
   };
 
   const BookingItem = ({ item }: { item: Booking }) => (
-    <TouchableOpacity style={styles.bookingCard} onPress={() => openDetail(item._id)}>
-      {/* Card Header with Status */}
-      <View style={styles.cardHeader}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.orderCode}>#{item._id.slice(-8)}</Text>
-          <Text style={styles.bookingDate}>
-            {dayjs(item.appointmentTime?.date).format('DD/MM/YYYY')}
-          </Text>
+    <TouchableOpacity style={styles.bookingCard} onPress={() => openDetail(item._id)} activeOpacity={0.95}>
+      <View style={styles.itemRow}>
+        {/* Left: Date box */}
+        <View style={styles.dateBox}>
+          <Text style={styles.dateDay}>{dayjs(item.appointmentTime?.date).format('DD')}</Text>
+          <Text style={styles.dateMonth}>{dayjs(item.appointmentTime?.date).format('MMM').toUpperCase()}</Text>
+          <Text style={styles.dateWeek}>{dayjs(item.appointmentTime?.date).format('ddd')}</Text>
         </View>
-        <View style={styles.headerRight}>
-          {renderStatusChip(item.status)}
 
-        </View>
-      </View>
-
-      {/* Main Content */}
-      <View style={styles.cardContent}>
-        {/* Service Info */}
-        <View style={styles.serviceSection}>
-          <View style={styles.serviceRow}>
-            <Icon name="car-outline" size={18} color="#1890ff" />
-            <View style={styles.serviceInfo}>
-              <Text style={styles.serviceName}>
-                {item?.serviceDetails?.isInspectionOnly ? 'Mang xe tới kiểm tra' : (item?.serviceType?.name || 'N/A')}
-              </Text>
-              <Text style={styles.serviceCenter}>
-                {item?.serviceCenter?.name || 'N/A'}
-              </Text>
-            </View>
+        {/* Middle: Details */}
+        <View style={styles.itemMiddle}>
+          <Text style={styles.serviceName} numberOfLines={1}>{item?.serviceDetails?.isInspectionOnly ? 'Mang xe tới kiểm tra' : (item?.serviceType?.name || 'N/A')}</Text>
+          <Text style={styles.serviceCenter} numberOfLines={1}>{item?.serviceCenter?.name || 'N/A'}</Text>
+          <View style={styles.metaRowSmall}>
+            <Icon name="time-outline" size={14} color="#6B7280" />
+            <Text style={styles.metaTextSmall}>{formatTime12h(item.appointmentTime?.startTime || '')} - {formatTime12h(item.appointmentTime?.endTime || '')}</Text>
           </View>
         </View>
 
-        {/* Time Info */}
-        <View style={styles.timeSection}>
-          <View style={styles.timeRow}>
-            <Icon name="time-outline" size={18} color="#52c41a" />
-            <View style={styles.timeInfo}>
-              <Text style={styles.timeText}>
-                {formatTime12h(item.appointmentTime?.startTime || '')}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Feedback Section for Completed Bookings */}
-        {item.status === 'completed' && (
-          <View style={styles.feedbackSection}>
-            {item.feedback && (item.feedback.service || item.feedback.technician || item.feedback.facility || item.feedback.overall) ? (
-              <TouchableOpacity
-                style={styles.feedbackDisplay}
-                onPress={() => openFeedback(item)}
-              >
-                <View style={styles.feedbackContent}>
-                  <StarRating
-                    value={averageDetailed(item.feedback)}
-                    size={16}
-                    showNumber={true}
-                    interactive={false}
-                  />
-                  <Text style={styles.feedbackLabel}>
-                    Xem đánh giá
-                  </Text>
-                </View>
+        {/* Right: Status & actions */}
+        <View style={styles.itemRight}>
+          <View style={{ alignItems: 'flex-end' }}>{renderStatusChip(item.status)}</View>
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => openProgress(item._id)}>
+              <Icon name="trending-up-outline" size={18} color="#1890ff" />
+            </TouchableOpacity>
+            {canReschedule(item.status) && (
+              <TouchableOpacity style={styles.iconBtn} onPress={() => startReschedule(item)}>
+                <Icon name="calendar-outline" size={18} color="#16a34a" />
               </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.feedbackButton}
-                onPress={() => openFeedback(item)}
-              >
-                <Icon name="star-outline" size={16} color="#F59E0B" />
-                <Text style={styles.feedbackButtonText}>Đánh giá</Text>
+            )}
+            {canCancel(item.status) && (
+              <TouchableOpacity style={styles.iconBtn} onPress={() => startCancel(item)}>
+                <Icon name="close-outline" size={18} color="#ef4444" />
               </TouchableOpacity>
             )}
           </View>
-        )}
-      </View>
 
-      {/* Action Buttons */}
-      <View style={styles.cardActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => openProgress(item._id)}
-        >
-          <Icon name="trending-up-outline" size={16} color="#1890ff" />
-          <Text style={styles.actionButtonText}>Tiến độ</Text>
-        </TouchableOpacity>
-
-        {canReschedule(item.status) && (
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => startReschedule(item)}
-          >
-            <Icon name="calendar-outline" size={16} color="#52c41a" />
-            <Text style={styles.actionButtonText}>Đổi lịch</Text>
-          </TouchableOpacity>
-        )}
-
-        {canCancel(item.status) && (
-          <TouchableOpacity
-            style={[styles.actionButton, styles.cancelButton]}
-            onPress={() => startCancel(item)}
-          >
-            <Icon name="close-outline" size={16} color="#ff4d4f" />
-            <Text style={[styles.actionButtonText, styles.cancelButtonText]}>Hủy</Text>
-          </TouchableOpacity>
-        )}
+          {item.status === 'completed' && (
+            <View style={{ marginTop: 8, alignItems: 'flex-end' }}>
+              {item.feedback && (item.feedback.service || item.feedback.technician || item.feedback.facility || item.feedback.overall) ? (
+                <TouchableOpacity onPress={() => openFeedback(item)} style={styles.feedbackSmall}>
+                  <StarRating value={averageDetailed(item.feedback)} size={14} interactive={false} />
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.rateBtn} onPress={() => openFeedback(item)}>
+                  <Icon name="star-outline" size={14} color="#F59E0B" />
+                  <Text style={styles.feedbackButtonText}>Đánh giá</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -1662,6 +1609,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateBox: {
+    width: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    paddingVertical: 8,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  dateDay: { fontSize: 20, fontWeight: '800', color: '#111827' },
+  dateMonth: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+  dateWeek: { fontSize: 11, color: '#9CA3AF' },
+  itemMiddle: { flex: 1, justifyContent: 'center' },
+  metaRowSmall: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  metaTextSmall: { marginLeft: 6, color: '#6B7280', fontSize: 13 },
+  itemRight: { width: 92, alignItems: 'flex-end', justifyContent: 'flex-start' },
+  actionRow: { flexDirection: 'row', marginTop: 8 },
+  iconBtn: { padding: 8, marginLeft: 6, borderRadius: 8, backgroundColor: '#f8fafc' },
+  feedbackSmall: { backgroundColor: '#F0FDF4', borderRadius: 8, padding: 6, borderWidth: 1, borderColor: '#BBF7D0' },
+  rateBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10, backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FDE68A' },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
