@@ -305,7 +305,7 @@ const Step3ServiceSelectionScreen: React.FC<Step3ServiceSelectionScreenProps> = 
             <View style={styles.inspectionInfo}>
               <Text style={styles.inspectionTitle}>Chỉ mang xe tới kiểm tra</Text>
               <Text style={styles.inspectionDescription}>
-                Không chọn dịch vụ cụ thể, chỉ kiểm tra tình trạng
+                Không chọn dịch vụ cụ thể.
               </Text>
             </View>
             <TouchableOpacity
@@ -327,21 +327,25 @@ const Step3ServiceSelectionScreen: React.FC<Step3ServiceSelectionScreenProps> = 
       </Card>
 
       {/* Navigation Buttons */}
-      <View style={[styles.navigationContainer, { paddingBottom: insets.bottom + 60 }]}>
+      <View style={[styles.navigationContainer, { paddingBottom: insets.bottom + 50 }]}>
         <Button
           mode="outlined"
+          compact
           onPress={onPrev}
           style={styles.backButton}
           contentStyle={styles.buttonContent}
+          labelStyle={styles.buttonLabel}
         >
           Quay lại
         </Button>
         <Button
           mode="contained"
+          compact
           onPress={handleNext}
           disabled={!selectedService && !isInspectionOnly}
           style={styles.nextButton}
           contentStyle={styles.buttonContent}
+          labelStyle={styles.buttonLabel}
         >
           Tiếp theo
         </Button>
@@ -714,11 +718,11 @@ const styles = StyleSheet.create({
   },
   navigationContainer: {
     flexDirection: 'row',
-    padding: 12,
+    padding: 6,
     backgroundColor: 'white',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    gap: 8,
+    gap: 6,
   },
   backButton: {
     flex: 1,
@@ -728,7 +732,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#1890ff',
   },
   buttonContent: {
-    paddingVertical: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  buttonLabel: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   modalContent: {
     backgroundColor: 'white',

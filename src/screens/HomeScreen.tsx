@@ -230,7 +230,7 @@ const HomeScreen = () => {
                 EV Service Center{'\n'}Maintenance{'\n'}Management System
               </Text>
               <Text style={styles.heroSubtitle}>
-                Complete solution for EV service centers: customer tracking, maintenance scheduling, inventory management
+                Giải pháp hoàn chỉnh cho các trung tâm dịch vụ EV: theo dõi khách hàng, lập lịch bảo trì, quản lý hàng tồn kho
               </Text>
               <TouchableOpacity
                 style={styles.ctaButton}

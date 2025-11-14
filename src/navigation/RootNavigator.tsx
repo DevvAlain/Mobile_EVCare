@@ -161,7 +161,7 @@ const RootNavigator = () => {
             <Stack.Screen
               name="Booking"
               component={BookingScreen}
-              options={{ headerTitle: "Đặt lịch", headerLeft: () => null }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="BookingHistory"
