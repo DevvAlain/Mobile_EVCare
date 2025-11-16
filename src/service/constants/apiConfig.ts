@@ -60,6 +60,8 @@ export const BOOKING_TIME_SLOTS_ENDPOINT = (
   `${API_BASE_URL}/booking/service-centers/${serviceCenterId}/slots?date=${date}`;
 export const APPOINTMENT_PROGRESS_ENDPOINT = (appointmentId: string) =>
   `${API_BASE_URL}/appointments/${appointmentId}/progress`;
+export const APPOINTMENT_QUOTE_RESPONSE_ENDPOINT = (appointmentId: string) =>
+  `${API_BASE_URL}/appointments/${appointmentId}/quote-response`;
 export const TECHNICIAN_PROGRESS_QUOTE_RESPONSE_ENDPOINT = (
   progressId: string
 ) => `${API_BASE_URL}/work-progress/${progressId}/quote-response`;

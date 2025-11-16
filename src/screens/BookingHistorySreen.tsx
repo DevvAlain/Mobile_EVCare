@@ -27,7 +27,10 @@ import {
   BOOKING_DETAILS_ENDPOINT,
   BOOKING_TIME_SLOTS_ENDPOINT,
   APPOINTMENT_PROGRESS_ENDPOINT,
-  TECHNICIAN_PROGRESS_QUOTE_RESPONSE_ENDPOINT
+  APPOINTMENT_QUOTE_RESPONSE_ENDPOINT,
+  TECHNICIAN_PROGRESS_QUOTE_RESPONSE_ENDPOINT,
+  WORK_PROGRESS_LIST_ENDPOINT,
+  WORK_PROGRESS_DETAIL_ENDPOINT,
 } from '../service/constants/apiConfig';
 import { useAppDispatch, useAppSelector } from '../service/store';
 import {
@@ -75,7 +78,7 @@ const StarRating = ({
       ))}
       {showNumber && (
         <Text style={{ marginLeft: 6, fontWeight: '600', color: '#374151' }}>
-          {value.toFixed(1)}/5
+          {Number.isInteger(value) ? value : value.toFixed(1)}/5
         </Text>
       )}
     </View>
@@ -174,6 +177,8 @@ const BookingHistoryScreen: React.FC = () => {
   const [progressOpen, setProgressOpen] = useState(false);
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressData, setProgressData] = useState<any>(null);
+  const [progressRaw, setProgressRaw] = useState<any>(null);
+  const [progressRawOpen, setProgressRawOpen] = useState(false);
   const [quoteNotes, setQuoteNotes] = useState('');
 
   // Reschedule
@@ -277,21 +282,123 @@ const BookingHistoryScreen: React.FC = () => {
     setProgressOpen(true);
     setProgressLoading(true);
     setProgressData(null);
+    setProgressRaw(null);
     try {
       const res = await axiosInstance.get(APPOINTMENT_PROGRESS_ENDPOINT(appointmentId));
-      setProgressData(res.data?.data || { notFound: true });
-    } catch {
-      setProgressData({ notFound: true });
+      const data = res.data?.data;
+      // If backend returns progress under data, use it
+      if (data) {
+        setProgressData(data);
+        setProgressRaw(res.data || null);
+      } else {
+        // Try fallback: query work-progress list by appointmentId
+        // Some backends store progress resources under /work-progress
+        try {
+          const listRes = await axiosInstance.get(`${WORK_PROGRESS_LIST_ENDPOINT}?appointmentId=${appointmentId}`);
+          // listRes.data?.data may be array of progress entries
+          const listData = listRes.data?.data;
+          if (Array.isArray(listData) && listData.length > 0) {
+            const wp = listData[0];
+            setProgressData(wp);
+            setProgressRaw(listRes.data || null);
+          } else if (listRes.data?.success && listRes.data?.data) {
+            // sometimes API returns object
+            setProgressData(listRes.data.data);
+            setProgressRaw(listRes.data || null);
+          } else {
+            setProgressData({ notFound: true });
+            setProgressRaw(listRes.data || null);
+          }
+        } catch (e) {
+          // final fallback: mark not found
+          setProgressData({ notFound: true });
+        }
+      }
+    } catch (err) {
+      try {
+        const listRes = await axiosInstance.get(`${WORK_PROGRESS_LIST_ENDPOINT}?appointmentId=${appointmentId}`);
+        const listData = listRes.data?.data;
+        if (Array.isArray(listData) && listData.length > 0) {
+          const wp = listData[0];
+          setProgressData(wp);
+          setProgressRaw(listRes.data || null);
+        } else {
+          setProgressData({ notFound: true });
+          setProgressRaw(listRes.data || null);
+        }
+      } catch (e2) {
+        setProgressData({ notFound: true });
+      }
     } finally {
       setProgressLoading(false);
     }
   };
 
+  // Open progress modal using local booking data when available (customer view)
+  const openProgressFromBooking = async (b: Booking) => {
+    setProgressOpen(true);
+    setProgressLoading(false);
+    setProgressRaw(null);
+    // If booking already contains inspectionAndQuote, show it immediately
+    if (b?.inspectionAndQuote) {
+      setProgressData({ inspectionAndQuote: b.inspectionAndQuote });
+      setProgressRaw({ fromBooking: true, bookingId: b._id, inspectionAndQuote: b.inspectionAndQuote });
+      return;
+    }
+
+    // Fallback to network fetch by appointment id
+    await openProgress(b._id);
+  };
+
   const submitQuoteResponse = async (status: 'approved' | 'rejected') => {
     try {
-      if (!progressData?._id) return;
       setProgressLoading(true);
-      const res = await axiosInstance.put(TECHNICIAN_PROGRESS_QUOTE_RESPONSE_ENDPOINT(progressData._id), { status, notes: quoteNotes });
+
+      let progressId: string | undefined = (progressData as any)?._id;
+      const bookingId = (progressData as any)?.bookingId || (progressRaw as any)?.bookingId || null;
+
+      if (!progressId && bookingId) {
+        try {
+          const r = await axiosInstance.get(APPOINTMENT_PROGRESS_ENDPOINT(bookingId));
+          const d = r.data?.data;
+          if (d && d._id) {
+            progressId = d._id;
+            setProgressData((prev: any) => ({ ...(prev || {}), ...d }));
+            setProgressRaw(r.data || null);
+          }
+        } catch (e) { }
+      }
+
+      if (!progressId && bookingId) {
+        try {
+          const listRes = await axiosInstance.get(`${WORK_PROGRESS_LIST_ENDPOINT}?appointmentId=${bookingId}`);
+          const listData = listRes.data?.data;
+          const found = Array.isArray(listData) && listData.length > 0 ? listData[0] : (listRes.data?.data || null);
+          if (found && found._id) {
+            progressId = found._id;
+            setProgressData((prev: any) => ({ ...(prev || {}), ...found }));
+            setProgressRaw(listRes.data || null);
+          }
+        } catch (e) { }
+      }
+
+      if (!progressId) {
+        if (bookingId) {
+          try {
+            const res2 = await axiosInstance.put(APPOINTMENT_QUOTE_RESPONSE_ENDPOINT(bookingId), { status, notes: quoteNotes });
+            if (res2.data?.success) {
+              showToast(status === 'approved' ? 'Đã chấp nhận báo giá' : 'Đã từ chối báo giá', 'success');
+              setProgressOpen(false);
+              await fetchList();
+              return;
+            }
+          } catch (e) { }
+        }
+        showToast('Không tìm thấy tiến trình để xác nhận báo giá', 'error');
+        return;
+      }
+
+      const res = await axiosInstance.put(TECHNICIAN_PROGRESS_QUOTE_RESPONSE_ENDPOINT(progressId), { status, notes: quoteNotes });
       if (res.data?.success) {
         showToast(status === 'approved' ? 'Đã chấp nhận báo giá' : 'Đã từ chối báo giá', 'success');
         setProgressOpen(false);
@@ -299,9 +406,11 @@ const BookingHistoryScreen: React.FC = () => {
       } else {
         showToast('Cập nhật thất bại', 'error');
       }
-    } catch {
-      showToast('Cập nhật thất bại', 'error');
-    } finally { setProgressLoading(false); }
+    } catch (e: any) {
+      showToast(e?.message || 'Cập nhật thất bại', 'error');
+    } finally {
+      setProgressLoading(false);
+    }
   };
 
   // Reschedule flow
@@ -452,8 +561,8 @@ const BookingHistoryScreen: React.FC = () => {
   const renderStatusChip = (status: string) => {
     const m = statusMeta[status] || { color: theme.colors.outline, icon: 'information-circle-outline', label: status };
     return (
-      <Chip style={{ backgroundColor: `${m.color}20` }} textStyle={{ color: m.color }}>
-        {m.label}
+      <Chip style={{ backgroundColor: `${m.color}20`, maxWidth: 120 }} textStyle={{ color: m.color }}>
+        <Text numberOfLines={1} ellipsizeMode="tail" style={{ color: m.color, fontWeight: '700' }}>{m.label}</Text>
       </Chip>
     );
   };
@@ -463,6 +572,57 @@ const BookingHistoryScreen: React.FC = () => {
     const arr = [fb.service, fb.technician, fb.facility].filter((n: any) => typeof n === 'number' && n > 0);
     if (arr.length) return Number((arr.reduce((a: number, b: number) => a + Number(b || 0), 0) / arr.length).toFixed(1));
     return typeof fb.overall === 'number' ? Number(Number(fb.overall).toFixed(1)) : 0;
+  };
+
+  // Render values that may be string/number/array/object to avoid passing raw objects into Text
+  const renderValueNode = (v: any) => {
+    if (v === null || v === undefined) return <Text>-</Text>;
+    if (typeof v === 'string' || typeof v === 'number') return <Paragraph>{String(v)}</Paragraph>;
+    if (Array.isArray(v)) {
+      return (
+        <View>
+          {v.map((it, i) => (
+            <Text key={i} style={{ marginBottom: 4 }}>{typeof it === 'object' ? JSON.stringify(it) : String(it)}</Text>
+          ))}
+        </View>
+      );
+    }
+    if (typeof v === 'object') {
+      // Common shape: { items: [...] }
+      if (Array.isArray((v as any).items)) {
+        const items = (v as any).items as any[];
+        const formatVND = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(n || 0));
+        return (
+          <View>
+            {items.map((it: any, i: number) => {
+              const name = it?.name || it?.partName || it?.part?.name || 'Linh kiện';
+              const qty = Number(it?.quantity || 0);
+              const price = Number(it?.unitPrice || it?.unit_price || 0);
+              const subtotal = qty && price ? qty * price : price || 0;
+              return (
+                <View key={i} style={{ marginBottom: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' }}>
+                  <Text style={{ fontWeight: '700', color: '#111827' }}>{name}</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+                    <Text style={{ color: '#6b7280' }}>Số lượng: {qty || '-'}</Text>
+                    <Text style={{ color: '#1f2937', fontWeight: '600' }}>{formatVND(price)}</Text>
+                  </View>
+                  <Text style={{ marginTop: 6, color: '#2563EB', fontWeight: '700' }}>Thành tiền: {formatVND(subtotal)}</Text>
+                  {it?.partId && <Text style={{ marginTop: 4, color: '#9CA3AF', fontSize: 12 }}>partId: {String(it.partId)}</Text>}
+                </View>
+              );
+            })}
+          </View>
+        );
+      }
+
+      // Fallback: pretty print object
+      try {
+        return <Paragraph>{JSON.stringify(v)}</Paragraph>;
+      } catch {
+        return <Text>-</Text>;
+      }
+    }
+    return <Text>{String(v)}</Text>;
   };
 
   const BookingItem = ({ item }: { item: Booking }) => (
@@ -488,21 +648,55 @@ const BookingHistoryScreen: React.FC = () => {
         {/* Right: Status & actions */}
         <View style={styles.itemRight}>
           <View style={{ alignItems: 'flex-end' }}>{renderStatusChip(item.status)}</View>
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => openProgress(item._id)}>
-              <Icon name="trending-up-outline" size={18} color="#1890ff" />
-            </TouchableOpacity>
-            {canReschedule(item.status) && (
-              <TouchableOpacity style={styles.iconBtn} onPress={() => startReschedule(item)}>
-                <Icon name="calendar-outline" size={18} color="#16a34a" />
-              </TouchableOpacity>
-            )}
-            {canCancel(item.status) && (
-              <TouchableOpacity style={styles.iconBtn} onPress={() => startCancel(item)}>
-                <Icon name="close-outline" size={18} color="#ef4444" />
-              </TouchableOpacity>
-            )}
-          </View>
+
+          {(() => {
+            const quoteAllowed = ['quote_provided', 'quote_approved', 'quote_rejected', 'inspection_completed'].includes(item.status);
+            const rescheduleAllowed = canReschedule(item.status);
+            const cancelAllowed = canCancel(item.status);
+            return (
+              <View style={styles.actionRow}>
+                {/* Quote: show always (web shows it except in rare cases) */}
+                <TouchableOpacity
+                  style={styles.iconBtn}
+                  onPress={() => openProgressFromBooking(item)}
+                  accessibilityLabel="Xem báo giá"
+                >
+                  <Icon name="pricetag-outline" size={18} color="#06B6D4" />
+                </TouchableOpacity>
+
+                {/* Progress / status timeline - always visible */}
+                <TouchableOpacity
+                  style={styles.iconBtn}
+                  onPress={() => openProgress(item._id)}
+                  accessibilityLabel="Xem tiến độ"
+                >
+                  <Icon name="trending-up-outline" size={18} color="#1890ff" />
+                </TouchableOpacity>
+
+                {/* Reschedule - render only when allowed (match web behavior) */}
+                {rescheduleAllowed && (
+                  <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => startReschedule(item)}
+                    accessibilityLabel="Đổi lịch"
+                  >
+                    <Icon name="calendar-outline" size={18} color="#16a34a" />
+                  </TouchableOpacity>
+                )}
+
+                {/* Cancel - render only when allowed (match web behavior) */}
+                {cancelAllowed && (
+                  <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => startCancel(item)}
+                    accessibilityLabel="Hủy lịch"
+                  >
+                    <Icon name="close-outline" size={18} color="#ef4444" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          })()}
 
           {item.status === 'completed' && (
             <View style={{ marginTop: 8, alignItems: 'flex-end' }}>
@@ -651,7 +845,7 @@ const BookingHistoryScreen: React.FC = () => {
           ]}
         >
           <View style={styles.statsGrid}>
-            <View style={[styles.statCard, styles.totalCard]}>
+            <View style={[styles.statCard, styles.statTotalCard]}>
               <View style={styles.statIconContainer}>
                 <Icon name="calendar-outline" size={24} color="#1890ff" />
               </View>
@@ -816,69 +1010,248 @@ const BookingHistoryScreen: React.FC = () => {
           )}
         </Modal>
 
-        {/* Progress Modal */}
-        <Modal visible={progressOpen} onDismiss={() => setProgressOpen(false)} contentContainerStyle={styles.modalBox}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Tiến độ lịch hẹn</Text>
-          <Divider style={{ marginVertical: 12 }} />
+        <Modal
+          visible={progressOpen}
+          onDismiss={() => setProgressOpen(false)}
+          contentContainerStyle={[styles.modalBox, styles.progressModal]}
+        >
           {progressLoading ? (
-            <View style={{ paddingVertical: 12 }}>
+            <View style={{ paddingVertical: 20 }}>
               <ProgressBar indeterminate />
-              <Text style={{ marginTop: 8 }}>Đang tải dữ liệu...</Text>
+              <Text style={{ marginTop: 12, textAlign: 'center' }}>Đang tải dữ liệu...</Text>
             </View>
           ) : progressData?.notFound ? (
-            <View style={{ padding: 12 }}>
-              <Text>Không tìm thấy bản ghi tiến độ cho lịch hẹn này</Text>
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Icon name="alert-circle-outline" size={48} color="#6b7280" />
+              <Text style={{ marginTop: 12, textAlign: 'center' }}>Không tìm thấy bản ghi tiến độ cho lịch hẹn này</Text>
             </View>
           ) : (
-            <View style={{ gap: 12 }}>
-              {/* Inspection & Quote */}
-              {(() => {
-                const iq = progressData?.appointmentId?.inspectionAndQuote || progressData?.inspectionAndQuote || progressData?.quote || {};
-                const formatVND = (v: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(v || 0));
-                return (
-                  <Card>
-                    <Card.Title title="Thông tin kiểm tra & báo giá" />
-                    <Card.Content>
-                      <Text>Ghi chú kiểm tra: {iq?.inspectionNotes || '-'}</Text>
-                      <Text>Hoàn thành kiểm tra: {iq?.inspectionCompletedAt ? new Date(iq?.inspectionCompletedAt).toLocaleString('vi-VN') : '-'}</Text>
-                      <Text>Tình trạng xe: {iq?.vehicleCondition || '-'}</Text>
-                      <Text>Chẩn đoán: {iq?.diagnosisDetails || '-'}</Text>
-                      <Text>Số tiền báo giá: <Text style={{ fontWeight: '700', color: '#2563EB' }}>{iq?.quoteAmount ? formatVND(iq?.quoteAmount) : '-'}</Text></Text>
-                      <Text>Trạng thái báo giá: {iq?.quoteStatus || 'pending'}</Text>
-                      {!!iq?.quoteDetails && <Paragraph style={{ marginTop: 6 }}>Chi tiết: {iq?.quoteDetails}</Paragraph>}
-                    </Card.Content>
-                  </Card>
-                );
-              })()}
+            (() => {
+              const iq = progressData?.appointmentId?.inspectionAndQuote || progressData?.inspectionAndQuote || progressData?.quote || {};
+              const formatVND = (v: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(v || 0));
+              const items: any[] = Array.isArray(iq?.quoteDetails?.items) ? iq.quoteDetails.items : [];
+              const itemsTotal = items.reduce((acc: number, it: any) => {
+                const qty = Number(it?.quantity || 0);
+                const price = Number(it?.unitPrice || it?.unit_price || 0);
+                return acc + (qty > 0 ? qty * price : price || 0);
+              }, 0);
+              const total = Number(iq?.quoteAmount || itemsTotal || 0);
 
-              {!!progressData?.milestones?.length && (
-                <Card>
-                  <Card.Title title="Các mốc tiến độ" />
-                  <Card.Content>
-                    {progressData.milestones.map((m: any) => (
-                      <View key={m._id || m.name} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                        <Icon name="ellipse-outline" size={12} />
-                        <Text style={{ marginLeft: 8, fontWeight: '600' }}>{m.name}</Text>
-                        {!!m.status && <Chip style={{ marginLeft: 8 }} compact>{m.status}</Chip>}
+              return (
+                <View style={styles.progressModalContent}>
+                  {/* Scrollable Content - Chiếm 75% chiều cao */}
+                  <ScrollView
+                    style={styles.progressScrollContent}
+                    showsVerticalScrollIndicator={true}
+                  >
+                    {/* Header: service center + quote meta */}
+                    <View style={styles.progressHeader}>
+                      <View style={styles.serviceCenterInfo}>
+                        <Text style={styles.sectionLabel}>Trung tâm dịch vụ</Text>
+                        <Text style={styles.serviceCenterName}>
+                          {progressData?.serviceCenter?.name || progressData?.centerName || 'EVCare'}
+                        </Text>
                       </View>
-                    ))}
-                  </Card.Content>
-                </Card>
-              )}
-
-              {String(progressData?.currentStatus || '').toLowerCase() !== 'completed' && (
-                <Card>
-                  <Card.Title title="Phản hồi báo giá" />
-                  <Card.Content>
-                    <TextInput label="Ghi chú (tùy chọn)" value={quoteNotes} onChangeText={setQuoteNotes} multiline />
-                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-                      <Button icon="checkmark-outline" onPress={() => submitQuoteResponse('approved')} loading={progressLoading}>Chấp nhận</Button>
-                      <Button icon="close" onPress={() => submitQuoteResponse('rejected')} loading={progressLoading}>Từ chối</Button>
+                      <View style={styles.quoteMeta}>
+                        <View style={styles.quoteMetaRow}>
+                          <Text style={styles.sectionLabel}>Số báo giá:</Text>
+                          <Text style={styles.quoteNumber}>
+                            {progressData?.quoteNumber || (progressData?._id ? `#${String(progressData._id).slice(0, 8)}` : '')}
+                          </Text>
+                        </View>
+                        <View style={styles.quoteMetaRow}>
+                          <Text style={styles.sectionLabel}>Ngày báo giá:</Text>
+                          <Text style={styles.quoteDate}>
+                            {progressData?.quoteDate ? dayjs(progressData.quoteDate).format('DD/MM/YYYY') : (iq?.quotedAt ? dayjs(iq.quotedAt).format('DD/MM/YYYY') : '')}
+                          </Text>
+                        </View>
+                        <View style={styles.quoteStatusContainer}>
+                          <Chip
+                            style={[
+                              styles.quoteStatusChip,
+                              {
+                                backgroundColor: iq?.quoteStatus === 'approved' ? '#DCFCE7' :
+                                  iq?.quoteStatus === 'rejected' ? '#FEE2E2' : '#FEF3C7'
+                              }
+                            ]}
+                            compact
+                          >
+                            {(iq?.quoteStatus || 'pending').toUpperCase()}
+                          </Chip>
+                        </View>
+                      </View>
                     </View>
-                  </Card.Content>
-                </Card>
-              )}
-            </View>
+
+                    {/* Info cards: customer + vehicle */}
+                    <View style={styles.infoCardsContainer}>
+                      <Card style={styles.infoCard}>
+                        <Card.Content>
+                          <Text style={styles.infoCardTitle}>Thông tin khách hàng</Text>
+                          <Text style={styles.infoCardText}>
+                            {progressData?.customer?.fullName || progressData?.customerName || 'Khách hàng'}
+                          </Text>
+                        </Card.Content>
+                      </Card>
+                      <Card style={styles.infoCard}>
+                        <Card.Content>
+                          <Text style={styles.infoCardTitle}>Thông tin xe</Text>
+                          <Text style={styles.infoCardText}>
+                            Tình trạng: {iq?.vehicleCondition || '-'}
+                          </Text>
+                          <Text style={styles.infoCardText}>
+                            Chẩn đoán: {iq?.diagnosisDetails || '-'}
+                          </Text>
+                        </Card.Content>
+                      </Card>
+                    </View>
+
+                    {/* Inspection notes box */}
+                    <Card style={styles.inspectionNotesCard}>
+                      <Card.Content>
+                        <Text style={styles.inspectionNotesTitle}>Ghi chú kiểm tra</Text>
+                        <Text style={styles.inspectionNotesText}>
+                          {iq?.inspectionNotes || 'Không có ghi chú kiểm tra'}
+                        </Text>
+                        {!!iq?.inspectionCompletedAt && (
+                          <Text style={styles.inspectionCompletedAt}>
+                            Hoàn thành kiểm tra: {new Date(iq?.inspectionCompletedAt).toLocaleString('vi-VN')}
+                          </Text>
+                        )}
+                      </Card.Content>
+                    </Card>
+
+                    {/* Items table */}
+                    <Card style={styles.itemsTableCard}>
+                      <Card.Content style={{ padding: 0 }}>
+                        <View style={styles.tableHeader}>
+                          <Text style={[styles.tableHeaderText, { flex: 0.6 }]}>STT</Text>
+                          <Text style={[styles.tableHeaderText, { flex: 4 }]}>Tên linh kiện</Text>
+                          <Text style={[styles.tableHeaderText, { flex: 1, textAlign: 'center' }]}>SL</Text>
+                          <Text style={[styles.tableHeaderText, { flex: 2, textAlign: 'right' }]}>Đơn giá</Text>
+                          <Text style={[styles.tableHeaderText, { flex: 2, textAlign: 'right' }]}>Thành tiền</Text>
+                        </View>
+
+                        {items.length === 0 ? (
+                          <View style={styles.emptyItems}>
+                            <Text style={styles.emptyItemsText}>Không có linh kiện trong báo giá</Text>
+                          </View>
+                        ) : (
+                          items.map((it: any, idx: number) => {
+                            const name = it?.name || it?.partName || it?.part?.name || 'Linh kiện';
+                            const qty = Number(it?.quantity || 0);
+                            const price = Number(it?.unitPrice || it?.unit_price || 0);
+                            const subtotal = qty && price ? qty * price : price || 0;
+
+                            return (
+                              <View
+                                key={idx}
+                                style={[
+                                  styles.tableRow,
+                                  idx % 2 === 0 && styles.tableRowEven
+                                ]}
+                              >
+                                <Text style={[styles.tableCell, { flex: 0.6 }]}>{idx + 1}</Text>
+                                <Text style={[styles.tableCell, { flex: 4 }]} numberOfLines={2}>{name}</Text>
+                                <Text style={[styles.tableCell, { flex: 1, textAlign: 'center' }]}>{qty || '-'}</Text>
+                                <Text style={[styles.tableCell, { flex: 2, textAlign: 'right' }]}>{formatVND(price)}</Text>
+                                <Text style={[styles.tableCell, styles.subtotalCell, { flex: 2, textAlign: 'right' }]}>
+                                  {formatVND(subtotal)}
+                                </Text>
+                              </View>
+                            );
+                          })
+                        )}
+                      </Card.Content>
+                    </Card>
+
+                    {/* Total amount */}
+                    <Card style={styles.totalCard}>
+                      <Card.Content>
+                        <View style={styles.totalContainer}>
+                          <Text style={styles.totalLabel}>Tổng cộng</Text>
+                          <Text style={styles.totalAmount}>{formatVND(total)}</Text>
+                        </View>
+                      </Card.Content>
+                    </Card>
+
+                    {/* Milestones (if any) */}
+                    {!!progressData?.milestones?.length && (
+                      <Card style={styles.milestonesCard}>
+                        <Card.Title title="Các mốc tiến độ" titleStyle={styles.milestonesTitle} />
+                        <Card.Content>
+                          {progressData.milestones.map((m: any, index: number) => (
+                            <View key={m._id || m.name} style={styles.milestoneItem}>
+                              <View style={styles.milestoneIcon}>
+                                <Icon
+                                  name={m.status === 'completed' ? "checkmark-circle" : "ellipse-outline"}
+                                  size={16}
+                                  color={m.status === 'completed' ? '#10B981' : '#6B7280'}
+                                />
+                              </View>
+                              <View style={styles.milestoneContent}>
+                                <Text style={styles.milestoneName}>{m.name}</Text>
+                                {m.completedAt && (
+                                  <Text style={styles.milestoneDate}>
+                                    {new Date(m.completedAt).toLocaleString('vi-VN')}
+                                  </Text>
+                                )}
+                              </View>
+                              {!!m.status && (
+                                <Chip
+                                  style={[
+                                    styles.milestoneChip,
+                                    m.status === 'completed' && styles.milestoneChipCompleted
+                                  ]}
+                                  compact
+                                >
+                                  {m.status}
+                                </Chip>
+                              )}
+                            </View>
+                          ))}
+                        </Card.Content>
+                      </Card>
+                    )}
+                  </ScrollView>
+
+                  {/* Fixed Actions - Chiếm 25% chiều cao */}
+                  {(['', 'pending'].includes(String((iq?.quoteStatus || '')).toLowerCase())) && (
+                    <View style={styles.progressActions}>
+                      <View style={styles.actionsHeader}>
+                        <Text style={styles.actionsTitle}>Xác nhận báo giá</Text>
+                        <Text style={styles.actionsSubtitle}>Vui lòng xem xét và đưa ra quyết định</Text>
+                      </View>
+
+                      <View style={styles.actionsButtons}>
+                        <Button
+                          mode="contained"
+                          icon="check"
+                          onPress={() => submitQuoteResponse('approved')}
+                          loading={progressLoading}
+                          style={styles.approveButton}
+                          contentStyle={styles.buttonContent}
+                          labelStyle={styles.buttonLabel}
+                        >
+                          Chấp nhận
+                        </Button>
+
+                        <Button
+                          mode="outlined"
+                          icon="close"
+                          onPress={() => submitQuoteResponse('rejected')}
+                          loading={progressLoading}
+                          style={styles.rejectButton}
+                          contentStyle={styles.buttonContent}
+                          labelStyle={styles.buttonLabel}
+                        >
+                          Từ chối
+                        </Button>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              );
+            })()
           )}
         </Modal>
 
@@ -987,41 +1360,41 @@ const BookingHistoryScreen: React.FC = () => {
                           }
                         }}
                       >
-                          <View style={{ flex: 1 }}>
-                            <Text style={{
-                              color: slot ? '#1890ff' : '#6b7280',
-                              fontSize: 16,
-                              fontWeight: slot ? '600' : '400'
-                            }}>
-                              {slot ?
-                                slots.find(s => s.startTime === slot) ?
-                                  `${formatTime12h(slots.find(s => s.startTime === slot)!.startTime)}` :
-                                  'Chọn giờ đến'
-                                : 'Chọn giờ đến'
-                              }
-                            </Text>
-                            {!slot && (
-                             <Text style={{
-                               color: '#9ca3af',
-                               fontSize: 11,
-                               marginTop: 2
-                             }}>
-                                Tap để xem các giờ đến có sẵn
-                              </Text>
-                            )}
-                          </View>
-                          <View style={{
-                            backgroundColor: slot ? '#1890ff' : '#f3f4f6',
-                            borderRadius: 6,
-                            padding: 4
+                        <View style={{ flex: 1 }}>
+                          <Text style={{
+                            color: slot ? '#1890ff' : '#6b7280',
+                            fontSize: 16,
+                            fontWeight: slot ? '600' : '400'
                           }}>
-                            <Icon
-                              name="chevron-down"
-                              size={16}
-                              color={slot ? 'white' : '#6b7280'}
-                            />
-                          </View>
-                        </TouchableOpacity>
+                            {slot ?
+                              slots.find(s => s.startTime === slot) ?
+                                `${formatTime12h(slots.find(s => s.startTime === slot)!.startTime)}` :
+                                'Chọn giờ đến'
+                              : 'Chọn giờ đến'
+                            }
+                          </Text>
+                          {!slot && (
+                            <Text style={{
+                              color: '#9ca3af',
+                              fontSize: 11,
+                              marginTop: 2
+                            }}>
+                              Tap để xem các giờ đến có sẵn
+                            </Text>
+                          )}
+                        </View>
+                        <View style={{
+                          backgroundColor: slot ? '#1890ff' : '#f3f4f6',
+                          borderRadius: 6,
+                          padding: 4
+                        }}>
+                          <Icon
+                            name="chevron-down"
+                            size={16}
+                            color={slot ? 'white' : '#6b7280'}
+                          />
+                        </View>
+                      </TouchableOpacity>
 
                       {showTimeDropdown && (
                         <Portal>
@@ -1120,7 +1493,7 @@ const BookingHistoryScreen: React.FC = () => {
           {!!rescheduleErr && <HelperText type="error">{rescheduleErr}</HelperText>}
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12, gap: 8 }}>
             <Button onPress={() => setRescheduleOpen(false)}>Hủy</Button>
-            <Button  onPress={onSubmitReschedule} loading={loading}>Xác nhận</Button>
+            <Button onPress={onSubmitReschedule} loading={loading}>Xác nhận</Button>
           </View>
         </Modal>
 
@@ -1252,9 +1625,10 @@ const BookingHistoryScreen: React.FC = () => {
           </View>
 
           <View style={styles.commentSection}>
-            <Text style={[styles.commentLabel, { fontSize: 16, fontWeight: '600', flexDirection: 'row', alignItems: 'center' }]}>
-              <Icon name="chatbubble-outline" size={16} color="#6B7280" /> Nhận xét của bạn
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <Icon name="chatbubble-outline" size={16} color="#6B7280" />
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937', marginLeft: 8 }}>Nhận xét của bạn</Text>
+            </View>
             {feedbackViewOnly ? (
               <Card style={styles.commentDisplayCard}>
                 <Card.Content>
@@ -1441,9 +1815,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  totalCard: {
-    backgroundColor: '#f0f9ff',
-    borderColor: '#bae6fd',
+  statTotalCard: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
   },
   confirmedCard: {
     backgroundColor: '#eff6ff',
@@ -1630,9 +2004,10 @@ const styles = StyleSheet.create({
   itemMiddle: { flex: 1, justifyContent: 'center' },
   metaRowSmall: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   metaTextSmall: { marginLeft: 6, color: '#6B7280', fontSize: 13 },
-  itemRight: { width: 92, alignItems: 'flex-end', justifyContent: 'flex-start' },
-  actionRow: { flexDirection: 'row', marginTop: 8 },
-  iconBtn: { padding: 8, marginLeft: 6, borderRadius: 8, backgroundColor: '#f8fafc' },
+  itemRight: { width: 180, alignItems: 'flex-end', justifyContent: 'flex-start' },
+  actionRow: { flexDirection: 'row', marginTop: 8, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' },
+  iconBtn: { padding: 6, marginLeft: 6, borderRadius: 10, backgroundColor: '#f8fafc' },
+  iconBtnDisabled: { padding: 6, marginLeft: 6, borderRadius: 10, backgroundColor: '#f8fafc', opacity: 0.45 },
   feedbackSmall: { backgroundColor: '#F0FDF4', borderRadius: 8, padding: 6, borderWidth: 1, borderColor: '#BBF7D0' },
   rateBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10, backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FDE68A' },
   cardHeader: {
@@ -1940,6 +2315,266 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 16,
     fontWeight: '600'
+  },
+  progressModal: {
+    margin: 8,
+    backgroundColor: 'white',
+    padding: 0,
+    borderRadius: 16,
+    maxHeight: '90%',
+    height: '90%',
+  },
+  progressModalContent: {
+    flex: 1,
+    flexDirection: 'column',
+  },
+  progressScrollContent: {
+    flex: 0.75, // 75% cho nội dung scroll
+    padding: 16,
+  },
+  progressActions: {
+    flex: 0.25, // 25% cho phần actions
+    backgroundColor: '#f8fafc',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    padding: 16,
+    justifyContent: 'space-between',
+  },
+
+  // Progress Header
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  serviceCenterInfo: {
+    flex: 1,
+  },
+  sectionLabel: {
+    color: '#6b7280',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  serviceCenterName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  quoteMeta: {
+    marginLeft: 12,
+    alignItems: 'flex-end',
+  },
+  quoteMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  quoteNumber: {
+    fontWeight: '700',
+    color: '#1f2937',
+    marginLeft: 6,
+  },
+  quoteDate: {
+    color: '#1f2937',
+    marginLeft: 6,
+  },
+  quoteStatusContainer: {
+    marginTop: 8,
+  },
+  quoteStatusChip: {
+    borderWidth: 0,
+  },
+
+  // Info Cards
+  infoCardsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  infoCard: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+    borderColor: '#E5E7EB',
+  },
+  infoCardTitle: {
+    fontWeight: '700',
+    marginBottom: 8,
+    color: '#374151',
+    fontSize: 14,
+  },
+  infoCardText: {
+    color: '#6B7280',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+
+  // Inspection Notes
+  inspectionNotesCard: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    marginBottom: 16,
+  },
+  inspectionNotesTitle: {
+    fontWeight: '700',
+    marginBottom: 8,
+    color: '#2563EB',
+    fontSize: 14,
+  },
+  inspectionNotesText: {
+    color: '#1E40AF',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  inspectionCompletedAt: {
+    color: '#6b7280',
+    fontSize: 11,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+
+  // Items Table
+  itemsTableCard: {
+    marginBottom: 16,
+    backgroundColor: 'white',
+    borderColor: '#e6edf8',
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#f8fafc',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  tableHeaderText: {
+    fontWeight: '700',
+    color: '#374151',
+    fontSize: 12,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    minHeight: 50,
+  },
+  tableRowEven: {
+    backgroundColor: '#f8fafc',
+  },
+  tableCell: {
+    fontSize: 13,
+    color: '#4B5563',
+  },
+  subtotalCell: {
+    fontWeight: '600',
+    color: '#2563EB',
+  },
+  emptyItems: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  emptyItemsText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+  },
+
+  // Total Card
+  totalCard: {
+    marginBottom: 16,
+    backgroundColor: '#1E40AF',
+  },
+  totalContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: 'white',
+  },
+  totalAmount: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: 'white',
+  },
+
+  // Milestones
+  milestonesCard: {
+    marginBottom: 16,
+  },
+  milestonesTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  milestoneItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    padding: 8,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+  },
+  milestoneIcon: {
+    marginRight: 12,
+  },
+  milestoneContent: {
+    flex: 1,
+  },
+  milestoneName: {
+    fontWeight: '600',
+    color: '#374151',
+    fontSize: 14,
+  },
+  milestoneDate: {
+    color: '#6B7280',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  milestoneChip: {
+    marginLeft: 8,
+  },
+  milestoneChipCompleted: {
+    backgroundColor: '#DCFCE7',
+  },
+
+  // Actions Section
+  actionsHeader: {
+    marginBottom: 16,
+  },
+  actionsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  actionsSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  actionsButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  approveButton: {
+    flex: 1,
+    backgroundColor: '#10B981',
+  },
+  rejectButton: {
+    flex: 1,
+    borderColor: '#EF4444',
+  },
+  buttonContent: {
+    height: 48,
+  },
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
