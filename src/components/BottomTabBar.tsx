@@ -51,9 +51,9 @@ const BottomTabBar: React.FC<Props> = ({ activeRouteName = '', onNavigate }) => 
 
     return (
         <View style={styles.container}>
-            {renderTab('Home', 'home-outline', 'Home')}
+            {renderTab('Home', 'home-outline', 'Trang chủ')}
             {renderTab('ManageVehicles', 'car-outline', 'Xe')}
-            {renderTab('Booking', 'calendar-blank-outline', 'Booking')}
+            {renderTab('Booking', 'calendar-blank-outline', 'Đặt lịch')}
             {renderTab('PaymentHistory', 'history', 'Lịch sử')}
             {renderTab('Settings', 'cog-outline', 'Cài đặt')}
         </View>

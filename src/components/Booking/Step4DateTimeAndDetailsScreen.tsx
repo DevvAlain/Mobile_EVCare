@@ -6,13 +6,10 @@ import {
   Button,
   Card,
   TextInput,
-  Chip,
   useTheme,
-  ProgressBar,
   Portal,
   Modal,
   RadioButton,
-  Divider,
 } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppDispatch, useAppSelector } from '../../service/store';
@@ -21,7 +18,7 @@ import {
   createBooking,
   resetBooking
 } from '../../service/slices/bookingSlice';
-import { clearCurrentPayment } from '../../service/slices/paymentSlice.ts/paymentSlice';
+// note: clearCurrentPayment not used in this component
 import PaymentModal from '../../screens/Payment/PaymentModal';
 import { useNavigation } from '@react-navigation/native';
 import dayjs from 'dayjs';
@@ -125,6 +122,14 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
     setSelectedHour(hour);
     const minute = selectedMinute || '00';
     const final = `${hour}:${minute}`;
+    // Prevent selecting past time for today
+    if (selectedDate && dayjs(selectedDate).isSame(dayjs(), 'day')) {
+      const dt = dayjs(`${selectedDate} ${final}`, 'YYYY-MM-DD HH:mm');
+      if (dt.isBefore(dayjs())) {
+        showToast('Không thể chọn giờ trong quá khứ', 'warning');
+        return;
+      }
+    }
     setSelectedTime(final);
     setCustomTime('');
     setActiveTimeDropdown('minute');
@@ -134,6 +139,14 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
     setSelectedMinute(minute);
     const hour = selectedHour || '01';
     const final = `${hour}:${minute}`;
+    // Prevent selecting past time for today
+    if (selectedDate && dayjs(selectedDate).isSame(dayjs(), 'day')) {
+      const dt = dayjs(`${selectedDate} ${final}`, 'YYYY-MM-DD HH:mm');
+      if (dt.isBefore(dayjs())) {
+        showToast('Không thể chọn giờ trong quá khứ', 'warning');
+        return;
+      }
+    }
     setSelectedTime(final);
     setCustomTime('');
     setShowTimeDropdown(false);
@@ -158,6 +171,20 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
     const formatted = minutes.length > 0 ? `${hours}:${minutes}` : hours;
     setCustomTime(formatted);
     setSelectedTime('');
+  };
+
+  const validateCustomOnBlur = () => {
+    // Only validate when a full HH:mm present
+    if (!selectedDate) return;
+    if (!/^[0-2]\d:[0-5]\d$/.test(customTime)) return;
+    // If selected date is today, ensure time not in past
+    if (dayjs(selectedDate).isSame(dayjs(), 'day')) {
+      const dt = dayjs(`${selectedDate} ${customTime}`, 'YYYY-MM-DD HH:mm');
+      if (dt.isBefore(dayjs())) {
+        showToast('Giờ bạn nhập đã ở quá khứ. Vui lòng chọn giờ khác', 'warning');
+        setCustomTime('');
+      }
+    }
   };
 
   const handleTimeModeChange = (mode: 'preset' | 'custom') => {
@@ -187,6 +214,15 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
     if (!selectedServiceCenter) {
       showToast('Không tìm thấy trung tâm dịch vụ', 'error');
       return;
+    }
+
+    // Prevent submitting past datetime
+    if (dayjs(selectedDate).isSame(dayjs(), 'day')) {
+      const dt = dayjs(`${selectedDate} ${finalTime}`, 'YYYY-MM-DD HH:mm');
+      if (dt.isBefore(dayjs())) {
+        showToast('Không thể đặt lịch cho thời gian đã qua', 'warning');
+        return;
+      }
     }
 
     try {
@@ -234,7 +270,7 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
 
   return (
     <TouchableWithoutFeedback onPress={() => setShowTimeDropdown(false)}>
-      <View style={[styles.container, { paddingTop: Math.max(insets.top - 16, 0) }]}> 
+      <View style={[styles.container, { paddingTop: Math.max(insets.top - 16, 0) }]}>
         {/* Top Toast (same style as BookingHistory) */}
         {snackVisible ? (() => {
           const meta = {
@@ -259,18 +295,18 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
 
           {/* Booking Summary */}
           <Card.Content>
-             <View style={styles.depositHeader}>
-               <Text style={styles.depositTitle}>Khi thanh toán trực tuyến</Text>
-            <Text style={styles.depositSubtitle}>
-            Bạn chỉ cần thanh toán 20% giá trị dịch vụ.  
-            Số tiền còn lại sẽ thanh toán tại trung tâm.
-            </Text>
+            <View style={styles.depositHeader}>
+              <Text style={styles.depositTitle}>Khi thanh toán trực tuyến</Text>
+              <Text style={styles.depositSubtitle}>
+                Bạn chỉ cần thanh toán 20% giá trị dịch vụ.
+                Số tiền còn lại sẽ thanh toán tại trung tâm.
+              </Text>
             </View>
-            </Card.Content>
+          </Card.Content>
           <Card style={styles.summaryCard}>
-            
+
             <Card.Content>
-             
+
               <Text style={styles.summaryTitle}>Thông tin đặt lịch</Text>
               <View style={styles.summaryContent}>
                 <View style={styles.summaryRow}>
@@ -423,6 +459,8 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
                         if (/^\d{2}$/.test(customTime)) {
                           handleCustomTimeChange(`${customTime}:00`);
                         }
+                        // validate custom time against selected date
+                        validateCustomOnBlur();
                       }}
                     />
                     <Text style={styles.customTimeNote}>
@@ -497,6 +535,7 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
         </ScrollView>
 
         {/* Navigation */}
+        {/* compute finalTime and validation booleans to ensure disabled prop is boolean */}
         <View style={[styles.navigationContainer, { paddingBottom: insets.bottom + 50 }]}>
           <Button
             mode="outlined"
@@ -508,18 +547,27 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
           >
             Quay lại
           </Button>
-          <Button
-            mode="contained"
-            compact
-            onPress={handleCreateBooking}
-            loading={createBookingLoading}
-            disabled={!selectedDate || (!selectedTime && !customTime)}
-            style={styles.createButton}
-            contentStyle={styles.buttonContent}
-            labelStyle={styles.buttonLabel}
-          >
-            Hoàn tất đặt lịch
-          </Button>
+          {(() => {
+            const finalTime = timeSelectionMode === 'custom' ? customTime : selectedTime;
+            const hasTime = !!finalTime;
+            const isToday = !!(selectedDate && dayjs(selectedDate).isSame(dayjs(), 'day'));
+            const isPast = Boolean(selectedDate && hasTime && isToday && dayjs(`${selectedDate} ${finalTime}`, 'YYYY-MM-DD HH:mm').isBefore(dayjs()));
+            const disabled = !selectedDate || !hasTime || isPast;
+            return (
+              <Button
+                mode="contained"
+                compact
+                onPress={handleCreateBooking}
+                loading={createBookingLoading}
+                disabled={disabled}
+                style={styles.createButton}
+                contentStyle={styles.buttonContent}
+                labelStyle={styles.buttonLabel}
+              >
+                Hoàn tất đặt lịch
+              </Button>
+            );
+          })()}
         </View>
 
         {/* Date Picker Modal */}
@@ -637,7 +685,7 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     flex: 1,
   },
-   depositHeader: {
+  depositHeader: {
     backgroundColor: "#E6F4FF",
     padding: 16,
     borderRadius: 12,
