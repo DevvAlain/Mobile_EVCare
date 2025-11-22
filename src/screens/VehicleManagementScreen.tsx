@@ -356,7 +356,7 @@ const VehicleManagementScreen = () => {
                         <View style={[styles.detailIcon, { backgroundColor: '#EFF6FF' }]}>
                             <Icon name="event" size={16} color="#3B82F6" />
                         </View>
-                        <View>
+                        <View style={{ position: 'relative' }}>
                             <Text style={styles.detailLabel}>NĂM</Text>
                             <Text style={styles.detailValue}>{v?.year || '—'}</Text>
                         </View>
@@ -508,6 +508,7 @@ const VehicleManagementScreen = () => {
                         showsVerticalScrollIndicator={false}
                         contentContainerStyle={{ flexGrow: 1 }}
                         onScrollBeginDrag={dismissKeyboard} // ← THÊM DÒNG NÀY
+                        scrollEnabled={!showBrandDropdown}
                     >
                         {formError && (
                             <View style={styles.formErrorContainer}>

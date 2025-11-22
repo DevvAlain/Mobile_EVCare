@@ -350,6 +350,14 @@ const BookingHistoryScreen: React.FC = () => {
     await openProgress(b._id);
   };
 
+  const closeProgressModal = () => {
+    setProgressOpen(false);
+    setProgressData(null);
+    setProgressRaw(null);
+    setQuoteNotes('');
+    setProgressLoading(false);
+  };
+
   const submitQuoteResponse = async (status: 'approved' | 'rejected') => {
     try {
       setProgressLoading(true);
@@ -1029,16 +1037,39 @@ const BookingHistoryScreen: React.FC = () => {
             (() => {
               const iq = progressData?.appointmentId?.inspectionAndQuote || progressData?.inspectionAndQuote || progressData?.quote || {};
               const formatVND = (v: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(v || 0));
-              const items: any[] = Array.isArray(iq?.quoteDetails?.items) ? iq.quoteDetails.items : [];
+
+              // Normalize quote details -> items array when possible
+              const items: any[] = Array.isArray(iq?.quoteDetails?.items)
+                ? iq.quoteDetails.items
+                : Array.isArray(iq?.quoteDetails)
+                ? iq.quoteDetails
+                : [];
+
               const itemsTotal = items.reduce((acc: number, it: any) => {
                 const qty = Number(it?.quantity || 0);
                 const price = Number(it?.unitPrice || it?.unit_price || 0);
                 return acc + (qty > 0 ? qty * price : price || 0);
               }, 0);
+
               const total = Number(iq?.quoteAmount || itemsTotal || 0);
+
+              // Determine whether there is a real quote to display
+              const quoteStatus = String(iq?.quoteStatus || 'pending').toLowerCase();
+              const hasQuoteItems = items.length > 0;
+              const hasQuoteString = iq?.quoteDetails && typeof iq.quoteDetails === 'string' && iq.quoteDetails.trim() !== '';
+              const hasQuoteAmount = Boolean(iq?.quoteAmount && Number(iq.quoteAmount) > 0);
+              const hasQuote = hasQuoteItems || hasQuoteString || hasQuoteAmount;
 
               return (
                 <View style={styles.progressModalContent}>
+                  {/* Close (X) button top-right for progress/quote modal */}
+                  <TouchableOpacity
+                    onPress={closeProgressModal}
+                    style={styles.modalCloseButton}
+                    accessibilityLabel="Đóng"
+                  >
+                    <Icon name="close" size={20} color="#6B7280" />
+                  </TouchableOpacity>
                   {/* Scrollable Content - Chiếm 75% chiều cao */}
                   <ScrollView
                     style={styles.progressScrollContent}
@@ -1215,7 +1246,16 @@ const BookingHistoryScreen: React.FC = () => {
                   </ScrollView>
 
                   {/* Fixed Actions - Chiếm 25% chiều cao */}
-                  {(['', 'pending'].includes(String((iq?.quoteStatus || '')).toLowerCase())) && (
+                  {/* If the quote is pending but there is no actual quote content, show an informational message like web FE */}
+                  {quoteStatus === 'pending' && !hasQuote && (
+                    <View style={{ padding: 16, backgroundColor: '#FFFBEB', borderRadius: 8, borderWidth: 1, borderColor: '#FDE68A', marginTop: 12 }}>
+                      <Text style={{ color: '#92400E', fontWeight: '700', marginBottom: 6 }}>Chưa có báo giá</Text>
+                      <Text style={{ color: '#92400E' }}>Booking này chưa có báo giá. Vui lòng chờ kỹ thuật viên gửi báo giá.</Text>
+                    </View>
+                  )}
+
+                  {/* Only show response actions when the quote is pending AND there is actual quote content to review */}
+                  {quoteStatus === 'pending' && hasQuote && (
                     <View style={styles.progressActions}>
                       <View style={styles.actionsHeader}>
                         <Text style={styles.actionsTitle}>Xác nhận báo giá</Text>
@@ -2291,6 +2331,17 @@ const styles = StyleSheet.create({
   },
   submittedText: {
     color: '#6B7280',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 20,
+    padding: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   modalActions: {
     flexDirection: 'row',

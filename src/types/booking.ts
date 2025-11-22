@@ -124,7 +124,7 @@ export interface BookingData {
   appointmentTime: string;
   serviceDescription: string;
   priority: "low" | "medium" | "high" | "critical";
-  paymentPreference: "online" | "offline";
+  paymentPreference:  "offline";
   isInspectionOnly?: boolean;
 }
 

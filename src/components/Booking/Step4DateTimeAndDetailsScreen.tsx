@@ -9,7 +9,6 @@ import {
   useTheme,
   Portal,
   Modal,
-  RadioButton,
 } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAppDispatch, useAppSelector } from '../../service/store';
@@ -19,7 +18,6 @@ import {
   resetBooking
 } from '../../service/slices/bookingSlice';
 // note: clearCurrentPayment not used in this component
-import PaymentModal from '../../screens/Payment/PaymentModal';
 import { useNavigation } from '@react-navigation/native';
 import dayjs from 'dayjs';
 
@@ -45,7 +43,7 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
   const [customTime, setCustomTime] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [serviceDescription, setServiceDescription] = useState<string>('');
-  const [paymentPreference, setPaymentPreference] = useState<'online' | 'offline'>('offline');
+  
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
   const [activeTimeDropdown, setActiveTimeDropdown] = useState<'hour' | 'minute' | null>(null);
@@ -53,9 +51,7 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
   const [selectedMinute, setSelectedMinute] = useState<string>('');
   const [timeSelectionMode, setTimeSelectionMode] = useState<'preset' | 'custom'>('preset');
 
-  // Payment modal state
-  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
-  const [bookingResponse, setBookingResponse] = useState<any>(null);
+  
   const [snack, setSnack] = useState<string>('');
   const [snackType, setSnackType] = useState<'success' | 'error' | 'info' | 'warning'>('info');
   const [snackVisible, setSnackVisible] = useState(false);
@@ -91,7 +87,6 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
       appointmentDate: selectedDate,
       appointmentTime: finalTime,
       serviceDescription,
-      paymentPreference,
     };
 
     const hasChanges = Object.keys(newBookingData).some(key => {
@@ -103,7 +98,7 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
     if (hasChanges) {
       dispatch(updateBookingData(newBookingData));
     }
-  }, [selectedDate, selectedTime, customTime, timeSelectionMode, serviceDescription, paymentPreference, dispatch]);
+  }, [selectedDate, selectedTime, customTime, timeSelectionMode, serviceDescription, dispatch]);
 
   const handleDateSelect = (date: Date) => {
     const dateString = dayjs(date).format('YYYY-MM-DD');
@@ -235,36 +230,20 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
         appointmentDate: selectedDate,
         appointmentTime: finalTime,
         serviceDescription,
-        paymentPreference,
         isInspectionOnly: isInspectionOnlyFromState,
+        // BookingData requires paymentPreference; use offline by default since online payment was removed
+        paymentPreference: 'offline' as const,
       };
-
       const result = await dispatch(createBooking(bookingPayload)).unwrap();
-      setBookingResponse(result);
 
       if (result.success) {
-        if (paymentPreference === 'online' && result.data.requiresPayment) {
-          // Chọn thanh toán online và cần thanh toán -> hiển thị PaymentModal
-          setPaymentModalVisible(true);
-        } else if (paymentPreference === 'online' && !result.data.requiresPayment) {
-          // Chọn thanh toán online nhưng không cần thanh toán -> chuyển đến PaymentHistory
-          dispatch(resetBooking());
-          navigation.reset({ index: 0, routes: [{ name: 'PaymentHistory' as never, params: { toastMessage: 'Đặt lịch thành công!', toastType: 'success' } as never }] });
-        } else {
-          // Thanh toán trực tiếp tại trung tâm -> chuyển đến BookingHistory
-          dispatch(resetBooking());
-          navigation.reset({ index: 0, routes: [{ name: 'BookingHistory' as never, params: { toastMessage: 'Đặt lịch thành công!', toastType: 'success' } as never }] });
-        }
+        // Always treat as offline payment flow (no online payment option)
+        dispatch(resetBooking());
+        navigation.reset({ index: 0, routes: [{ name: 'BookingHistory' as never, params: { toastMessage: 'Đặt lịch thành công!', toastType: 'success' } as never }] });
       }
     } catch (error: any) {
       showToast(error.message || 'Có lỗi xảy ra khi đặt lịch', 'error');
     }
-  };
-
-  const handlePaymentSuccess = () => {
-    setPaymentModalVisible(false);
-    dispatch(resetBooking());
-    navigation.reset({ index: 0, routes: [{ name: 'PaymentHistory' as never, params: { toastMessage: 'Đặt lịch thành công!', toastType: 'success' } as never }] });
   };
 
 
@@ -293,16 +272,7 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
-          {/* Booking Summary */}
-          <Card.Content>
-            <View style={styles.depositHeader}>
-              <Text style={styles.depositTitle}>Khi thanh toán trực tuyến</Text>
-              <Text style={styles.depositSubtitle}>
-                Bạn chỉ cần thanh toán 20% giá trị dịch vụ.
-                Số tiền còn lại sẽ thanh toán tại trung tâm.
-              </Text>
-            </View>
-          </Card.Content>
+          {/* Booking Summary (banner removed) */}
           <Card style={styles.summaryCard}>
 
             <Card.Content>
@@ -488,47 +458,7 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
             </Card.Content>
           </Card>
 
-          {/* Payment Preference */}
-          <Card style={styles.sectionCard}>
-            <Card.Content>
-              <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
-              <View style={styles.paymentOptions}>
-                <TouchableOpacity
-                  style={styles.paymentOption}
-                  onPress={() => setPaymentPreference('offline')}
-                >
-                  <RadioButton
-                    value="offline"
-                    status={paymentPreference === 'offline' ? 'checked' : 'unchecked'}
-                    onPress={() => setPaymentPreference('offline')}
-                  />
-                  <View style={styles.paymentOptionContent}>
-                    <Text style={styles.paymentOptionTitle}>Thanh toán tại trung tâm</Text>
-                    <Text style={styles.paymentOptionDescription}>
-                      Thanh toán khi hoàn thành dịch vụ
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.paymentOption}
-                  onPress={() => setPaymentPreference('online')}
-                >
-                  <RadioButton
-                    value="online"
-                    status={paymentPreference === 'online' ? 'checked' : 'unchecked'}
-                    onPress={() => setPaymentPreference('online')}
-                  />
-                  <View style={styles.paymentOptionContent}>
-                    <Text style={styles.paymentOptionTitle}>Thanh toán online</Text>
-                    <Text style={styles.paymentOptionDescription}>
-                      Thanh toán trước qua ví điện tử
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </Card.Content>
-          </Card>
+          {/* Payment Preference removed */}
 
           {/* Spacer to avoid content under bottom actions */}
           <View style={{ height: insets.bottom + 100 }} />
@@ -628,21 +558,7 @@ const Step4DateTimeAndDetailsScreen: React.FC<Step4DateTimeAndDetailsScreenProps
           </Modal>
         </Portal>
 
-        {/* Payment Modal */}
-        {paymentModalVisible && bookingResponse && bookingResponse.data?.payment && (
-          <PaymentModal
-            visible={paymentModalVisible}
-            paymentData={bookingResponse.data.payment}
-            onPaymentSuccess={handlePaymentSuccess}
-            onCancel={() => {
-              setPaymentModalVisible(false);
-              // Khi hủy thanh toán, vẫn chuyển đến PaymentHistory để xem trạng thái
-              dispatch(resetBooking());
-              navigation.reset({ index: 0, routes: [{ name: 'PaymentHistory' as never, params: { toastMessage: 'Bạn có thể tiếp tục thanh toán sau', toastType: 'info' } as never }] });
-            }}
-            description={bookingResponse.data.payment.description || 'Thanh toán đặt lịch'}
-          />
-        )}
+        {/* Payment modal removed (online payment disabled) */}
       </View>
     </TouchableWithoutFeedback>
   );
@@ -657,31 +573,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   summaryCard: {
-    margin: 12,
+    margin: 16,
     backgroundColor: '#f0f9ff',
     borderColor: '#bae6fd',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
   },
   summaryTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: '#1f2937',
     marginBottom: 8,
   },
   summaryContent: {
-    gap: 8,
+    gap: 12,
+    paddingVertical: 6,
   },
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   summaryLabel: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6b7280',
     fontWeight: '500',
   },
   summaryValue: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#1f2937',
     flex: 1,
   },

@@ -146,7 +146,7 @@ const BookingScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: 0 }]}>
+    <View style={[styles.container, { paddingTop: 16 }]}>
       {/* Header: Improved layout */}
       <View style={styles.headerContainer}>
         <View style={styles.headerMain}>
