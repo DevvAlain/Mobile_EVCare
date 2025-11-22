@@ -8,6 +8,9 @@ import {
   ScrollView,
   ActivityIndicator,
   Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -202,12 +205,18 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   };
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={styles.container}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <ScrollView
+        style={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        nestedScrollEnabled={true}
+        scrollEnabled={!showBrandDropdown}
+      >
       {formError && (
         <View style={styles.formErrorContainer}>
           <Text style={styles.formErrorText}>{formError}</Text>
@@ -217,7 +226,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       {/* Brand Selection */}
       <View style={styles.formField}>
         <Text style={styles.formLabel}>Hãng xe *</Text>
-        <View>
+        <View style={{ position: 'relative' }}>
           <TouchableOpacity
             style={[styles.formInputContainer, fieldErrors.brand && styles.inputError]}
             onPress={() => {
@@ -233,8 +242,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             <Icon name="arrow-drop-down" size={24} color="#6B7280" style={styles.selectIcon} />
           </TouchableOpacity>
           {showBrandDropdown && (
-            <View style={styles.inlineDropdownContainer}>
-              <ScrollView style={{ maxHeight: 200 }}>
+            <View style={styles.inlineDropdownContainer} pointerEvents="box-none">
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={true}
+                style={{ maxHeight: 300 }}
+              >
                 {brands.map((item) => (
                   <TouchableOpacity
                     key={item}
@@ -362,7 +375,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           )}
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -373,6 +387,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     flexGrow: 1,
+    paddingBottom: 100,
   },
   formErrorContainer: {
     backgroundColor: '#FEF2F2',
@@ -432,21 +447,24 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   inlineDropdownContainer: {
+    // Render dropdown as an absolute inline overlay under the selector.
     position: 'absolute',
-    top: 56,
     left: 0,
     right: 0,
+    top: 56,
+    marginTop: 8,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    zIndex: 100,
+    zIndex: 999,
+    elevation: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
+  
   dropdownItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
