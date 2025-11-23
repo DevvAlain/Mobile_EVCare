@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, Text, FlatList } from 'react-native';
+import { View, ScrollView, StyleSheet, TouchableOpacity, Text, FlatList, Platform, PermissionsAndroid } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons as Icon } from '@expo/vector-icons';
 import {
@@ -39,6 +39,9 @@ const Step2ServiceCenterSelectionScreen: React.FC<Step2ServiceCenterSelectionScr
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterSelection, setFilterSelection] = useState<'all' | 'nearby'>('all');
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationLoading, setLocationLoading] = useState<boolean>(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   // Use the ratings hook
   const { getEnhancedServiceCenters, loading: ratingsLoading } = useServiceCenterRatings(serviceCenters);
@@ -47,18 +50,134 @@ const Step2ServiceCenterSelectionScreen: React.FC<Step2ServiceCenterSelectionScr
     dispatch(fetchServiceCenters());
   }, [dispatch]);
 
+  useEffect(() => {
+    // try to get user location for distance calculations
+    requestLocationAndCompute();
+  }, []);
+
   // Get enhanced service centers with ratings
   const enhancedServiceCenters = getEnhancedServiceCenters();
 
-  const filteredServiceCenters = enhancedServiceCenters.filter((center: ServiceCenter) => {
+  // Attach distance (km) to each center if userLocation available
+  // Default location: VNUHCM Student Cultural House (Nhà Văn hóa Sinh viên TP.HCM)
+  const DEFAULT_COORDS = { latitude: 10.8809, longitude: 106.8056 };
+
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    return Math.round(distance * 10) / 10;
+  };
+
+  const getCurrentLocation = (): Promise<{ latitude: number, longitude: number }> => {
+    return new Promise(async (resolve) => {
+      try {
+        let hasPermission = true;
+        if (Platform.OS === 'android') {
+          try {
+            const granted = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+              {
+                title: 'Quyền truy cập vị trí',
+                message: 'Ứng dụng cần truy cập vị trí của bạn để tìm trung tâm dịch vụ gần nhất.',
+                buttonNeutral: 'Hỏi sau',
+                buttonNegative: 'Từ chối',
+                buttonPositive: 'Đồng ý',
+              }
+            );
+            hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
+          } catch (err) {
+            hasPermission = false;
+          }
+        }
+
+        if (!hasPermission) {
+          setLocationError('Không có quyền truy cập vị trí. Sử dụng vị trí mặc định.');
+          resolve(DEFAULT_COORDS);
+          return;
+        }
+
+        if (!navigator.geolocation) {
+          setLocationError('Thiết bị không hỗ trợ định vị. Sử dụng vị trí mặc định.');
+          resolve(DEFAULT_COORDS);
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setLocationError(null);
+            resolve({ latitude, longitude });
+          },
+          (error) => {
+            setLocationError('Không thể lấy vị trí. Sử dụng vị trí mặc định.');
+            resolve(DEFAULT_COORDS);
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 1000 * 60 * 5 }
+        );
+      } catch (err) {
+        setLocationError('Lỗi khi lấy vị trí. Sử dụng vị trí mặc định.');
+        resolve(DEFAULT_COORDS);
+      }
+    });
+  };
+
+  const requestLocationAndCompute = async () => {
+    setLocationLoading(true);
+    try {
+      const coords = await getCurrentLocation();
+      setUserLocation(coords);
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  // Prepare centers with distance property when possible
+  const centersWithDistance = enhancedServiceCenters.map((center: ServiceCenter) => {
+    let distance: number | null = null;
+    try {
+      if (userLocation && center.address?.coordinates) {
+        distance = calculateDistance(
+          userLocation.latitude,
+          userLocation.longitude,
+          center.address.coordinates.lat,
+          center.address.coordinates.lng
+        );
+      }
+    } catch (e) {
+      distance = null;
+    }
+    return { ...center, distance } as ServiceCenter & { distance?: number | null };
+  });
+
+  let filteredServiceCenters = centersWithDistance.filter((center: any) => {
     const matchesSearch = center.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      center.address.street.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      center.address.district.toLowerCase().includes(searchTerm.toLowerCase());
+      (center.address?.street || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (center.address?.district || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || center.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
+
+  // If we have the user's location, always sort by actual distance (nearest -> farthest)
+  if (userLocation) {
+    filteredServiceCenters = filteredServiceCenters.sort((a: any, b: any) => {
+      const da = a.distance ?? Number.MAX_SAFE_INTEGER;
+      const db = b.distance ?? Number.MAX_SAFE_INTEGER;
+      return da - db;
+    });
+  } else if (filterSelection === 'nearby') {
+    // If user explicitly asked for 'nearby' but we don't have location yet,
+    // trigger a location request and leave ordering as-is until we get it.
+    requestLocationAndCompute();
+  }
 
   const handleSelectServiceCenter = (center: ServiceCenter) => {
     if (!canSelectServiceCenter(center)) {
@@ -155,9 +274,9 @@ const Step2ServiceCenterSelectionScreen: React.FC<Step2ServiceCenterSelectionScr
       setStatusFilter('all');
       dispatch(fetchServiceCenters());
     } else {
-      // For mobile, we'll use a simple approach - just fetch all service centers
-      // In a real app, you'd use @react-native-community/geolocation
+      // If 'nearby' selected, re-fetch and get user location to compute distances
       dispatch(fetchServiceCenters());
+      requestLocationAndCompute();
     }
   };
 
@@ -200,6 +319,12 @@ const Step2ServiceCenterSelectionScreen: React.FC<Step2ServiceCenterSelectionScr
                 {center.address.district}, {center.address.city}
               </Text>
             </View>
+            {((center as any).distance !== undefined && (center as any).distance !== null) && (
+              <View style={styles.distanceBadge}>
+                <Icon name="navigate" size={12} color="#059669" />
+                <Text style={styles.distanceBadgeText}>{(center as any).distance} km</Text>
+              </View>
+            )}
           </View>
           <View style={styles.headerRight}>
             <View style={[styles.statusChip, { backgroundColor: `${getStatusColor(center.status)}20` }]}>
@@ -524,10 +649,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    marginBottom: 6,
   },
   quickInfoText: {
     fontSize: 11,
     color: '#6b7280',
+  },
+  distanceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+    alignSelf: 'flex-start',
+  },
+  distanceBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#059669',
   },
   statusChip: {
     borderRadius: 16,
@@ -727,7 +868,7 @@ const styles = StyleSheet.create({
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 20 ,
+    marginTop: 20,
     marginBottom: 10,
     gap: 8,
   },

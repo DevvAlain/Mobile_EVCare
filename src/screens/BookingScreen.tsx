@@ -146,7 +146,7 @@ const BookingScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: 16 }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header: Improved layout */}
       <View style={styles.headerContainer}>
         <View style={styles.headerMain}>
@@ -234,7 +234,7 @@ const BookingScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#EAF2FF',
   },
   header: {
     backgroundColor: '#1890ff',
@@ -263,13 +263,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#EAF2FF',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     paddingTop: 30,
   },
   headerMain: {
@@ -316,7 +311,7 @@ const styles = StyleSheet.create({
   },
   stepsCard: {
     margin: 10,
-    marginTop: 10,
+    marginTop: 0,
   },
   stepsContainer: {
     flexDirection: 'row',
