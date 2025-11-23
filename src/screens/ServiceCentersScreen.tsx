@@ -21,7 +21,8 @@ import { RootState } from '../service/store';
 import { ServiceCenter } from '../types/serviceCenter';
 import { RootStackParamList } from '../types';
 
-const DEFAULT_COORDS = { latitude: 10.762622, longitude: 106.660172 };
+// Default location: VNUHCM Student Cultural House (Nhà Văn hóa Sinh viên TP.HCM)
+const DEFAULT_COORDS = { latitude: 10.8809, longitude: 106.8056 };
 
 const ServiceCentersScreen: React.FC = () => {
     const dispatch = useDispatch<AppDispatch>();
